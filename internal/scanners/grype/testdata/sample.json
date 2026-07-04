@@ -1,0 +1,19 @@
+{
+  "matches": [
+    {
+      "vulnerability": {
+        "id": "CVE-2024-1000",
+        "severity": "Medium",
+        "dataSource": "https://example.test/grype",
+        "urls": ["https://example.test/grype/CVE-2024-1000"],
+        "fix": {"versions": ["2.0.0"]}
+      },
+      "artifact": {
+        "name": "sample-lib",
+        "version": "1.0.0",
+        "type": "java-archive",
+        "locations": [{"path": "/app/sample.jar"}]
+      }
+    }
+  ]
+}
