@@ -29,6 +29,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return runSBOM(ctx, args[1:], stdout, stderr)
 	case "doctor":
 		return runDoctor(ctx, args[1:], stdout, stderr)
+	case "tui":
+		return runTUI(ctx, args[1:], stdout, stderr)
 	case "completion":
 		return runCompletion(args[1:], stdout, stderr)
 	case "runtime":
@@ -60,7 +62,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 }
 
 var topLevelCommands = []string{
-	"init", "scan", "sbom", "doctor", "completion", "runtime", "tools", "cache", "version", "help",
+	"init", "scan", "sbom", "doctor", "tui", "completion", "runtime", "tools", "cache", "version", "help",
 }
 
 func suggestCommand(input string) string {
@@ -149,6 +151,7 @@ Usage:
   cargo-scanner <path> [scan options]
   cargo-scanner sbom [options] <path>
   cargo-scanner doctor [--fix]
+  cargo-scanner tui
   cargo-scanner completion <bash|zsh|fish|powershell>
   cargo-scanner runtime pull --scanner grype
   cargo-scanner tools doctor

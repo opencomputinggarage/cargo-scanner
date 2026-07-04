@@ -5,6 +5,7 @@
 ```sh
 cargo-scanner init
 cargo-scanner doctor --fix
+cargo-scanner tui
 cargo-scanner scan ./artifact.jar
 cargo-scanner ./artifact.jar
 ```

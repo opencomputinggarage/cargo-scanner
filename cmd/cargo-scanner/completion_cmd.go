@@ -6,7 +6,7 @@ import (
 )
 
 var completionCommands = []string{
-	"init", "scan", "sbom", "doctor", "runtime", "tools", "cache", "completion", "version", "help",
+	"init", "scan", "sbom", "doctor", "tui", "runtime", "tools", "cache", "completion", "version", "help",
 }
 
 func runCompletion(args []string, stdout, stderr io.Writer) int {
@@ -37,7 +37,7 @@ func writeBashCompletion(w io.Writer) {
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  commands="init scan sbom doctor runtime tools cache completion version help"
+  commands="init scan sbom doctor tui runtime tools cache completion version help"
   scan_opts="--scanner --config --runtime --docker-image --format --json --output --raw-output --sbom-output --recursive --include --exclude --fail-on --timeout"
   tools_cmds="path list doctor install update update-db uninstall"
   runtime_cmds="pull"
@@ -67,6 +67,7 @@ _cargo_scanner() {
     'scan:scan an artifact'
     'sbom:generate an SBOM'
     'doctor:check or fix the environment'
+    'tui:open interactive dashboard'
     'runtime:manage Docker runtime images'
     'tools:manage scanner CLIs'
     'cache:manage cache'
@@ -93,7 +94,7 @@ complete -c cargo-scanner -n '__fish_seen_subcommand_from doctor' -l fix
 func writePowerShellCompletion(w io.Writer) {
 	_, _ = fmt.Fprint(w, `Register-ArgumentCompleter -Native -CommandName cargo-scanner -ScriptBlock {
   param($wordToComplete, $commandAst, $cursorPosition)
-  $commands = 'init','scan','sbom','doctor','runtime','tools','cache','completion','version','help'
+  $commands = 'init','scan','sbom','doctor','tui','runtime','tools','cache','completion','version','help'
   $commands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
   }

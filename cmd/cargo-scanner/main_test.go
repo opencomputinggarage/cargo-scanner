@@ -100,6 +100,22 @@ func TestRunCompletionZsh(t *testing.T) {
 	}
 }
 
+func TestRunTUIPrint(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("CARGO_SCANNER_HOME", tmp)
+	var stdout, stderr bytes.Buffer
+	code := run(context.Background(), []string{"tui", "--print"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("code = %d, stderr = %s", code, stderr.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("Cargo Scanner")) {
+		t.Fatalf("expected dashboard title, got %s", stdout.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("Scan Downloads")) {
+		t.Fatalf("expected action list, got %s", stdout.String())
+	}
+}
+
 func TestRunScanMissingTarget(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"scan"}, &stdout, &stderr)

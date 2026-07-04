@@ -81,6 +81,7 @@ brew install --HEAD ./Formula/cargo-scanner.rb
 ```sh
 cargo-scanner doctor
 cargo-scanner doctor --fix
+cargo-scanner tui
 cargo-scanner ./artifact.jar --json
 cargo-scanner tools list
 cargo-scanner tools install all
