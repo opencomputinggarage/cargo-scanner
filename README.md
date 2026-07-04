@@ -221,6 +221,35 @@ cargo-scanner completion fish > ~/.config/fish/completions/cargo-scanner.fish
 cargo-scanner completion powershell > cargo-scanner.ps1
 ```
 
+## Development
+
+This repository uses [mise](https://mise.jdx.dev/) to pin local tool versions.
+Go, Node.js, and pnpm are defined in `.mise.toml`.
+
+```sh
+mise install
+mise run verify
+```
+
+Useful tasks:
+
+```sh
+mise run test
+mise run build
+mise run site-install
+mise run site-build
+mise run site-dev
+```
+
+The GitHub Pages site lives under `site/` and uses React, Vite, and pnpm:
+
+```sh
+cd site
+pnpm install
+pnpm dev
+pnpm build
+```
+
 ## Troubleshooting
 
 Check the environment:

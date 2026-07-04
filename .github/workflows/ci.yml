@@ -10,9 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: jdx/mise-action@v2
         with:
-          go-version-file: go.mod
           cache: true
-      - run: go test ./...
-      - run: go build -trimpath -o bin/cargo-scanner ./cmd/cargo-scanner
+      - run: mise run test
+      - run: mise run build
+      - run: pnpm install --frozen-lockfile
+        working-directory: site
+      - run: pnpm build
+        working-directory: site

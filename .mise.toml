@@ -1,0 +1,31 @@
+[tools]
+go = "1.26.4"
+node = "24.17.0"
+pnpm = "11.7.0"
+
+[tasks.test]
+description = "Run Go tests"
+run = "go test ./..."
+
+[tasks.build]
+description = "Build the Cargo Scanner CLI"
+run = "go build -trimpath -o bin/cargo-scanner ./cmd/cargo-scanner"
+
+[tasks.site-install]
+description = "Install site dependencies"
+dir = "site"
+run = "pnpm install"
+
+[tasks.site-build]
+description = "Build the GitHub Pages site"
+dir = "site"
+run = "pnpm build"
+
+[tasks.site-dev]
+description = "Run the local site dev server"
+dir = "site"
+run = "pnpm dev"
+
+[tasks.verify]
+description = "Run Go tests and build the site"
+depends = ["test", "site-build"]

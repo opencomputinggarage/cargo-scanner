@@ -1,0 +1,227 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+import {
+  Boxes,
+  CheckCircle2,
+  Clipboard,
+  Code2,
+  Container,
+  Download,
+  FileJson,
+  Monitor,
+  PackageCheck,
+  ShieldCheck,
+  Terminal,
+} from "lucide-react";
+import "./styles.css";
+
+const commands = [
+  {
+    label: "Fast start",
+    value:
+      "curl -fsSL https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.sh | sh\ncargo-scanner doctor --fix\ncargo-scanner ~/Downloads --recursive",
+  },
+  {
+    label: "Interactive",
+    value: "cargo-scanner tui",
+  },
+  {
+    label: "JSON report",
+    value: "cargo-scanner ./artifact.jar --json --output report.json",
+  },
+  {
+    label: "SBOM",
+    value: "cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json",
+  },
+];
+
+const runtimes = [
+  ["managed", "Best for personal machines. Cargo Scanner installs Grype, Trivy, and Syft for you."],
+  ["docker", "Best for CI and isolated runs with ghcr.io/opencomputinggarage/cargo-scanner-runtime."],
+  ["native", "Use existing scanner CLIs already managed on PATH."],
+  ["auto", "Prefer local Docker image, then managed tools, then native tools."],
+];
+
+const checks = [
+  "Install script verifies checksums",
+  "Managed tools keep provenance manifests",
+  "JSON, SARIF, raw scanner output, and SBOM output",
+  "Plain output with NO_COLOR or CARGO_SCANNER_PLAIN",
+];
+
+function App() {
+  const [activeCommand, setActiveCommand] = React.useState(commands[0]);
+
+  async function copy(text: string) {
+    await navigator.clipboard.writeText(text);
+  }
+
+  return (
+    <main>
+      <section className="hero">
+        <nav>
+          <div className="brand">
+            <PackageCheck size={24} />
+            <span>Cargo Scanner</span>
+          </div>
+          <div className="nav-actions">
+            <a href="https://github.com/opencomputinggarage/cargo-scanner/releases/latest">Releases</a>
+            <a href="https://github.com/opencomputinggarage/cargo-scanner">
+              <Code2 size={18} />
+              GitHub
+            </a>
+          </div>
+        </nav>
+
+        <div className="hero-grid">
+          <div className="hero-copy">
+            <p className="eyebrow">Inspect inbound artifacts before you unpack or ship them.</p>
+            <h1>Cargo Scanner</h1>
+            <p className="lede">
+              A unified CLI for local vulnerability scans and SBOM generation with Grype, Trivy, and Syft.
+              Use managed tools on personal machines, Docker in CI, or native scanner CLIs when your team
+              already manages them.
+            </p>
+            <div className="hero-actions">
+              <a className="primary" href="#quickstart">
+                <Terminal size={18} />
+                Quickstart
+              </a>
+              <a className="secondary" href="https://github.com/opencomputinggarage/cargo-scanner#troubleshooting">
+                Troubleshooting
+              </a>
+            </div>
+          </div>
+
+          <div className="terminal-shot" aria-label="Cargo Scanner terminal preview">
+            <div className="terminal-bar">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <pre>{`$ cargo-scanner tui
+╭────────────────────────────────────────╮
+│ Cargo Scanner                          │
+│ Managed tools 3/3 ready                │
+│                                        │
+│ > Scan Downloads                       │
+│   Fix Environment                      │
+│   Generate SBOM                        │
+╰────────────────────────────────────────╯
+
+$ cargo-scanner ~/Downloads --recursive
+Findings: 0 total
+OK No findings.`}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="quickstart" className="band">
+        <div className="section-heading">
+          <h2>Start In Three Commands</h2>
+          <p>Copy the path that matches how you want to work.</p>
+        </div>
+        <div className="command-layout">
+          <div className="command-tabs">
+            {commands.map((command) => (
+              <button
+                key={command.label}
+                className={activeCommand.label === command.label ? "active" : ""}
+                onClick={() => setActiveCommand(command)}
+              >
+                {command.label}
+              </button>
+            ))}
+          </div>
+          <div className="code-panel">
+            <button className="copy" onClick={() => copy(activeCommand.value)}>
+              <Clipboard size={16} />
+              Copy
+            </button>
+            <pre>{activeCommand.value}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section className="content-grid">
+        <article>
+          <ShieldCheck size={28} />
+          <h3>Scan Local Artifacts</h3>
+          <p>Scan downloads, build outputs, archives, and extracted folders without switching tools.</p>
+          <code>cargo-scanner ./artifact.jar --fail-on high</code>
+        </article>
+        <article>
+          <Boxes size={28} />
+          <h3>Generate SBOMs</h3>
+          <p>Create CycloneDX SBOM output and normalized operation reports from the same CLI.</p>
+          <code>cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json</code>
+        </article>
+        <article>
+          <Monitor size={28} />
+          <h3>Use The TUI</h3>
+          <p>Open an interactive dashboard for common local workflows and environment status.</p>
+          <code>cargo-scanner tui</code>
+        </article>
+      </section>
+
+      <section className="band split">
+        <div>
+          <h2>Runtime Strategy</h2>
+          <p>
+            Cargo Scanner keeps scanner adapters and runtime adapters separate, so the same commands work
+            across personal laptops, CI, and machines with existing scanner installations.
+          </p>
+        </div>
+        <div className="runtime-list">
+          {runtimes.map(([name, description]) => (
+            <div key={name} className="runtime-row">
+              <span>{name}</span>
+              <p>{description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="content-grid compact">
+        <article>
+          <Download size={24} />
+          <h3>Managed Tools</h3>
+          <p>Install and update Grype, Trivy, and Syft under Cargo Scanner's home directory.</p>
+        </article>
+        <article>
+          <Container size={24} />
+          <h3>Docker Runtime</h3>
+          <p>Use the GHCR runtime image for isolated execution and CI-friendly behavior.</p>
+        </article>
+        <article>
+          <FileJson size={24} />
+          <h3>Automation Output</h3>
+          <p>Text for humans, JSON and SARIF for automation, raw output when you need scanner-native data.</p>
+        </article>
+        <article>
+          <Code2 size={24} />
+          <h3>Predictable DX</h3>
+          <p>doctor, doctor --fix, shell completion, install script, and explicit troubleshooting paths.</p>
+        </article>
+      </section>
+
+      <section className="band checklist">
+        <h2>DX Care Built In</h2>
+        <div>
+          {checks.map((check) => (
+            <p key={check}>
+              <CheckCircle2 size={18} />
+              {check}
+            </p>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
