@@ -27,7 +27,11 @@ func runtimeByName(ctx context.Context, name string, dockerImage string, scanner
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "", "auto":
 		dockerRuntime := docker.New(image)
-		if err := dockerRuntime.Available(ctx); err == nil {
+		if dockerImage != "" {
+			if err := dockerRuntime.Available(ctx); err == nil {
+				return dockerRuntime, nil
+			}
+		} else if err := dockerRuntime.ImageAvailable(ctx); err == nil {
 			return dockerRuntime, nil
 		}
 		managedRuntime := managed.New("")

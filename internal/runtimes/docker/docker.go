@@ -55,7 +55,15 @@ func (r Runtime) Available(ctx context.Context) error {
 		}
 		return fmt.Errorf("docker unavailable: %w", err)
 	}
+	return nil
+}
+
+func (r Runtime) ImageAvailable(ctx context.Context) error {
+	if err := r.Available(ctx); err != nil {
+		return err
+	}
 	image := exec.CommandContext(ctx, "docker", "image", "inspect", r.Image)
+	var stderr bytes.Buffer
 	stderr.Reset()
 	image.Stderr = &stderr
 	if err := image.Run(); err != nil {

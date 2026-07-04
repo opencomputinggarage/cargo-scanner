@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/byeonggi/cargo-scanner/internal/core"
 	"github.com/byeonggi/cargo-scanner/internal/runtimes/docker"
@@ -31,6 +32,14 @@ func runDoctor(ctx context.Context, stdout io.Writer) int {
 		if status != "ok" {
 			continue
 		}
+		if dockerRuntime, ok := rt.(docker.Runtime); ok {
+			if err := dockerRuntime.ImageAvailable(ctx); err != nil {
+				_, _ = fmt.Fprintf(stdout, "- image: not pulled (%s)\n", compactError(err))
+				_, _ = fmt.Fprintf(stdout, "- hint: cargo-scanner runtime pull --scanner grype\n")
+				continue
+			}
+			_, _ = fmt.Fprintf(stdout, "- image: ok (%s)\n", dockerRuntime.Image)
+		}
 		for _, scanner := range scanners {
 			c := scanner.Detect(ctx, rt)
 			scannerStatus := "missing"
@@ -47,4 +56,13 @@ func runDoctor(ctx context.Context, stdout io.Writer) int {
 		}
 	}
 	return 0
+}
+
+func compactError(err error) string {
+	msg := strings.TrimSpace(err.Error())
+	msg = strings.ReplaceAll(msg, "\n", " ")
+	if len(msg) > 180 {
+		return msg[:177] + "..."
+	}
+	return msg
 }
