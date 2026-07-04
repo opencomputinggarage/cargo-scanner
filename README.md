@@ -372,6 +372,25 @@ cargo-scanner update --check
 cargo-scanner update
 ```
 
+## Open Source Shoutouts
+
+Cargo Scanner exists because excellent open source projects already do the hard
+security work. Special thanks to:
+
+- [Grype](https://github.com/anchore/grype) and
+  [Syft](https://github.com/anchore/syft) from Anchore for vulnerability
+  scanning and SBOM generation.
+- [Trivy](https://github.com/aquasecurity/trivy) from Aqua Security for
+  vulnerability scanning, SBOMs, and security databases.
+- [Charm](https://charm.sh/) for the terminal UX libraries behind the
+  interactive flows: Bubble Tea, Bubbles, Lip Gloss, Huh, and Glamour.
+- [GoReleaser](https://goreleaser.com/) for dependable multi-platform release
+  automation.
+- The Go, React, Vite, and pnpm communities for the runtime and documentation
+  tooling used around the project.
+
+Thank you to the maintainers and contributors who make these tools available.
+
 ## License
 
 Cargo Scanner is licensed under the Apache License, Version 2.0. See
