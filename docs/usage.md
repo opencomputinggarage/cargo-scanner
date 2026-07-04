@@ -6,19 +6,13 @@ This document is the command reference. Start with the
 ## First Run
 
 ```sh
-cargo-scanner init
 cargo-scanner doctor --fix
-cargo-scanner
-cargo-scanner tui
 cargo-scanner scan
 ```
 
-`init` writes `.cargo-scanner.yaml`. `doctor --fix` installs missing managed
-scanner tools and pulls the default Docker runtime image when Docker is
-available.
-
-When stdout/stderr/stdin are terminals, `cargo-scanner` opens the dashboard and
-`cargo-scanner scan` opens the guided scan wizard.
+`doctor --fix` installs missing managed scanner tools and pulls the default
+Docker runtime image when Docker is available. `cargo-scanner scan` opens the
+guided scan wizard in a terminal.
 
 ## Scanning
 
@@ -42,13 +36,11 @@ cargo-scanner scan ./artifact.jar
 cargo-scanner scan ~/Downloads --recursive
 ```
 
-Useful options:
+Common options:
 
 ```sh
 cargo-scanner ./artifact.jar --scanner grype
-cargo-scanner ./artifact.jar --scanner trivy
 cargo-scanner ./artifact.jar --fail-on high
-cargo-scanner ./artifact.jar --timeout 30m
 cargo-scanner ./downloads --recursive --include "*.jar,*.zip" --exclude "*.tmp"
 ```
 
@@ -117,8 +109,14 @@ Managed tools are installed under `~/.cargo-scanner/tools/bin` unless
 `CARGO_SCANNER_HOME` is set.
 
 ```sh
-cargo-scanner tools path
 cargo-scanner tools list
+cargo-scanner doctor --fix
+```
+
+Advanced:
+
+```sh
+cargo-scanner tools path
 cargo-scanner tools install all
 cargo-scanner tools install grype@0.115.0
 cargo-scanner tools update all
@@ -183,6 +181,7 @@ cargo-scanner completion powershell > cargo-scanner.ps1
 ## TUI
 
 ```sh
+cargo-scanner
 cargo-scanner tui
 ```
 

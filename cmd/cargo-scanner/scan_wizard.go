@@ -37,10 +37,10 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 		huh.NewGroup(
 			huh.NewNote().
 				Title("Cargo Scanner").
-				Description("Build a scan command interactively. The scan will start after confirmation."),
+				Description("Choose what to scan. Cargo Scanner will use safe defaults."),
 			huh.NewInput().
-				Title("Target path").
-				Description("File or directory to scan. Use recursive mode for folders.").
+				Title("What should be scanned?").
+				Description("A file or folder path. Examples: ~/Downloads, ./artifact.jar").
 				Placeholder("~/Downloads").
 				Value(&opts.Target).
 				Validate(func(value string) error {
@@ -54,54 +54,28 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 					return nil
 				}),
 			huh.NewConfirm().
-				Title("Scan directories recursively?").
-				Description("Recommended for Downloads, extracted archives, and project folders.").
+				Title("Include files inside folders?").
+				Description("Use this for Downloads, extracted archives, and project folders.").
 				Value(&opts.Recursive),
-		),
-		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title("Scanner").
+				Title("Output").
 				Options(
-					huh.NewOption("Grype - vulnerability scan", "grype"),
-					huh.NewOption("Trivy - vulnerability scan", "trivy"),
-					huh.NewOption("Syft - SBOM inventory", "syft"),
-				).
-				Value(&opts.Scanner),
-			huh.NewSelect[string]().
-				Title("Runtime").
-				Options(
-					huh.NewOption("Auto - choose best available", "auto"),
-					huh.NewOption("Managed - bundled tools", "managed"),
-					huh.NewOption("Docker - isolated runtime", "docker"),
-					huh.NewOption("Native - system PATH", "native"),
-				).
-				Value(&opts.Runtime),
-			huh.NewSelect[string]().
-				Title("Report format").
-				Options(
-					huh.NewOption("Text - human readable", "text"),
-					huh.NewOption("JSON - automation", "json"),
-					huh.NewOption("SARIF - code scanning", "sarif"),
+					huh.NewOption("Show a readable report", "text"),
+					huh.NewOption("Save JSON report", "json"),
+					huh.NewOption("Save SARIF report", "sarif"),
 				).
 				Value(&opts.Format),
-		),
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Fail threshold").
-				Description("Choose when the command should exit non-zero.").
-				Options(
-					huh.NewOption("Do not fail on severity", ""),
-					huh.NewOption("Critical", "critical"),
-					huh.NewOption("High or above", "high"),
-					huh.NewOption("Medium or above", "medium"),
-					huh.NewOption("Low or above", "low"),
-				).
-				Value(&opts.FailOn),
 			huh.NewInput().
-				Title("Write report to file").
-				Description("Optional. Leave empty to print to the terminal.").
+				Title("Report file").
+				Description("Optional for text. Required if you selected JSON or SARIF.").
 				Placeholder("report.json").
-				Value(&opts.Output),
+				Value(&opts.Output).
+				Validate(func(value string) error {
+					if opts.Format != "text" && strings.TrimSpace(value) == "" {
+						return fmt.Errorf("report file is required for %s output", opts.Format)
+					}
+					return nil
+				}),
 			huh.NewConfirm().
 				Title("Start scan now?").
 				Affirmative("Start").

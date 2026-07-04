@@ -18,21 +18,18 @@ workflow.
 ```sh
 curl -fsSL https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.sh | sh
 cargo-scanner doctor --fix
-cargo-scanner ~/Downloads --recursive
-```
-
-Prefer an interactive entry point:
-
-```sh
-cargo-scanner
-cargo-scanner tui
 cargo-scanner scan
 ```
 
-Running `cargo-scanner` opens the terminal dashboard when stdout is a TTY.
-Running `cargo-scanner scan` without a target opens a guided scan wizard. The
-TUI shows environment status and common actions such as guided scans, scanning
-Downloads, fixing missing tools, generating an SBOM, and writing JSON reports.
+Prefer direct commands:
+
+```sh
+cargo-scanner ~/Downloads --recursive
+cargo-scanner ./artifact.jar --fail-on high
+```
+
+Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
+without a target opens a guided scan wizard.
 
 ## Install
 
@@ -90,7 +87,7 @@ current action, elapsed time, completed steps, and Docker pull logs.
 
 ## Everyday Scans
 
-Guided scan:
+Start with the guided scan:
 
 ```sh
 cargo-scanner scan
@@ -134,9 +131,8 @@ Write SARIF for GitHub code scanning:
 cargo-scanner ./artifact.jar --format sarif --output results.sarif
 ```
 
-When stderr is a terminal, scans show a live TUI with the current file,
-progress bar, activity log, finding count, max severity, and a final summary.
-Use `--tui=false` to disable the live progress UI.
+In a terminal, scans show the current file and progress. Use `--tui=false` to
+disable the live progress UI.
 
 ## SBOM
 
@@ -171,8 +167,16 @@ cargo-scanner ./artifact.jar --runtime docker --docker-image ghcr.io/opencomputi
 
 ## Managed Tools
 
+Most users only need:
+
 ```sh
+cargo-scanner doctor --fix
 cargo-scanner tools list
+```
+
+Advanced tool management:
+
+```sh
 cargo-scanner tools install all
 cargo-scanner tools install grype@0.115.0
 cargo-scanner tools update all
@@ -193,19 +197,14 @@ export CARGO_SCANNER_HOME="$HOME/.cache/cargo-scanner"
 
 ## Updating Cargo Scanner
 
-Check for a new Cargo Scanner release:
+Most users only need:
 
 ```sh
 cargo-scanner update --check
-```
-
-Install the latest release in place:
-
-```sh
 cargo-scanner update
 ```
 
-Install a specific version:
+Advanced:
 
 ```sh
 cargo-scanner update --version v0.1.11
@@ -216,12 +215,8 @@ Releases, verifies SHA256, extracts the binary, and replaces the current
 executable. If the installed binary is owned by root, rerun with `sudo` or use
 the install script.
 
-Options:
-
-- `--check`: report whether an update is available without installing.
-- `--force`: reinstall the selected version even if it matches the current one.
-- `--version vX.Y.Z`: install a specific release.
-- `--repo owner/repo`: use another GitHub repository, mainly for testing forks.
+Use `--force` to reinstall the selected version and `--repo owner/repo` when
+testing a fork.
 
 ## Docker And CI
 

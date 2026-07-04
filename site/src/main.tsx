@@ -20,19 +20,15 @@ const commands = [
   {
     label: "Fast start",
     value:
-      "curl -fsSL https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.sh | sh\ncargo-scanner doctor --fix\ncargo-scanner ~/Downloads --recursive",
+      "curl -fsSL https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.sh | sh\ncargo-scanner doctor --fix\ncargo-scanner scan",
   },
   {
-    label: "Interactive",
-    value: "cargo-scanner\ncargo-scanner scan\ncargo-scanner tui",
+    label: "Direct scan",
+    value: "cargo-scanner ~/Downloads --recursive\ncargo-scanner ./artifact.jar --fail-on high",
   },
   {
     label: "Update",
     value: "cargo-scanner update --check\ncargo-scanner update",
-  },
-  {
-    label: "JSON report",
-    value: "cargo-scanner ./artifact.jar --json --output report.json",
   },
   {
     label: "SBOM",
@@ -105,22 +101,21 @@ function App() {
               <span></span>
               <span></span>
             </div>
-            <pre>{`$ cargo-scanner
+            <pre>{`$ cargo-scanner scan
+? What should be scanned? ~/Downloads
+? Include files inside folders? Yes
+? Output Show a readable report
+
+$ cargo-scanner
 ╭────────────────────────────────────────╮
 │ Cargo Scanner   workspace safety       │
 │ Managed tools 3/3 ready                │
 │                                        │
-│ > Guided Scan                          │
+│ > Scan Something                       │
 │   Scan Downloads                       │
-│   Fix Environment                      │
+│   Fix Setup                            │
 ╰────────────────────────────────────────╯
-
-$ cargo-scanner scan
-? Target path ~/Downloads
-? Scan directories recursively? Yes
-
-$ cargo-scanner update --check
-cargo-scanner is up to date`}</pre>
+`}</pre>
           </div>
         </div>
       </section>
@@ -168,8 +163,8 @@ cargo-scanner is up to date`}</pre>
         <article>
           <Monitor size={28} />
           <h3>Use The TUI</h3>
-          <p>Open a searchable dashboard or guided scan wizard without memorizing flags.</p>
-          <code>cargo-scanner</code>
+          <p>Start with a short guided scan, then use direct commands when ready.</p>
+          <code>cargo-scanner scan</code>
         </article>
       </section>
 

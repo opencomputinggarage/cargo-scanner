@@ -153,42 +153,34 @@ func usage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `Cargo Scanner scans inbound artifacts before you unpack them.
 
 Usage:
-  cargo-scanner
-  cargo-scanner init
-  cargo-scanner scan
-  cargo-scanner scan [options] <path>
-  cargo-scanner <path> [scan options]
-  cargo-scanner sbom [options] <path>
-  cargo-scanner doctor [--fix]
-  cargo-scanner tui
-  cargo-scanner completion <bash|zsh|fish|powershell>
-  cargo-scanner runtime pull --scanner grype
-  cargo-scanner tools doctor
-  cargo-scanner tools install grype
-  cargo-scanner tools update all
-  cargo-scanner tools update-db trivy
-  cargo-scanner cache clean
-  cargo-scanner update
-  cargo-scanner version
+  cargo-scanner                    Open the dashboard
+  cargo-scanner scan               Start a guided scan
+  cargo-scanner scan <path>        Scan a file or directory
+  cargo-scanner doctor --fix       Prepare scanner tools
+  cargo-scanner update             Update cargo-scanner
+  cargo-scanner sbom <path>        Generate an SBOM
 
-Run cargo-scanner with no arguments to open the dashboard.
-Run cargo-scanner scan with no target in a terminal to open the guided scan wizard.
+Common examples:
+  cargo-scanner ~/Downloads --recursive
+  cargo-scanner ./artifact.jar --fail-on high
+  cargo-scanner ./artifact.jar --json --output report.json
+  cargo-scanner tools list
 
 Scan options:
   --scanner grype        Scanner to use: grype, trivy, syft
-  --config path          Config file path
   --runtime auto         Runtime to use: auto, docker, managed, native
-  --docker-image image   Scanner runtime image for docker runtime
   --format text          Output format: text, json, sarif
   --json                 Write normalized JSON
   --output path          Write normalized report to file
-  --raw-output path      Write raw scanner JSON to file when supported
-  --sbom-output path     Write raw SBOM JSON to file for sbom command
   --recursive            Scan files under a directory
-  --include "*.jar"      Include glob, comma-separated
-  --exclude "*.tmp"      Exclude glob, comma-separated
   --fail-on high         Exit 1 when max severity meets threshold
-  --timeout 15m          Scan timeout
   --tui=false            Disable terminal scan progress UI
+
+More:
+  cargo-scanner help
+  cargo-scanner completion <bash|zsh|fish|powershell>
+  cargo-scanner runtime pull --scanner grype
+  cargo-scanner tools install all
+  cargo-scanner cache clean
 `)
 }

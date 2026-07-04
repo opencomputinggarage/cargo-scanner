@@ -84,12 +84,11 @@ func runTUI(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 
 func newTUIModel(ctx context.Context) tuiModel {
 	actions := []list.Item{
-		tuiAction{Name: "Guided Scan", Detail: "Pick target, scanner, runtime, format, and fail threshold", Command: "cargo-scanner scan", Args: []string{"scan"}},
-		tuiAction{Name: "Scan Downloads", Detail: "Recursive scan for personal inbound files", Command: "cargo-scanner scan ~/Downloads --recursive", Args: []string{"scan", "~/Downloads", "--recursive"}},
-		tuiAction{Name: "Scan Current Directory", Detail: "Quick scan of this project or extracted folder", Command: "cargo-scanner scan . --recursive", Args: []string{"scan", ".", "--recursive"}},
-		tuiAction{Name: "Fix Environment", Detail: "Install managed scanners and prepare Docker image", Command: "cargo-scanner doctor --fix", Args: []string{"doctor", "--fix"}},
-		tuiAction{Name: "Generate SBOM", Detail: "Create CycloneDX JSON for one artifact", Command: "cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json", Args: []string{"sbom", "./artifact.jar", "--sbom-output", "sbom.cdx.json"}},
-		tuiAction{Name: "JSON Report", Detail: "Machine-readable vulnerability report", Command: "cargo-scanner ./artifact.jar --json --output report.json", Args: []string{"./artifact.jar", "--json", "--output", "report.json"}},
+		tuiAction{Name: "Scan Something", Detail: "Choose a file or folder and start with safe defaults", Command: "cargo-scanner scan", Args: []string{"scan"}},
+		tuiAction{Name: "Scan Downloads", Detail: "Check common inbound files recursively", Command: "cargo-scanner scan ~/Downloads --recursive", Args: []string{"scan", "~/Downloads", "--recursive"}},
+		tuiAction{Name: "Fix Setup", Detail: "Install missing tools and prepare Docker", Command: "cargo-scanner doctor --fix", Args: []string{"doctor", "--fix"}},
+		tuiAction{Name: "Check For Updates", Detail: "Look for a newer cargo-scanner release", Command: "cargo-scanner update --check", Args: []string{"update", "--check"}},
+		tuiAction{Name: "Create SBOM", Detail: "Generate an SBOM for one artifact", Command: "cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json", Args: []string{"sbom", "./artifact.jar", "--sbom-output", "sbom.cdx.json"}},
 	}
 	delegate := list.NewDefaultDelegate()
 	delegate.SetHeight(3)
