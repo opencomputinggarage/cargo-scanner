@@ -1,7 +1,7 @@
 class CargoScanner < Formula
   desc "Scan inbound artifacts before unpacking them"
   homepage "https://github.com/opencomputinggarage/cargo-scanner"
-  license "MIT"
+  license "Apache-2.0"
   head "https://github.com/opencomputinggarage/cargo-scanner.git", branch: "main"
 
   depends_on "go" => :build
