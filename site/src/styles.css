@@ -328,11 +328,48 @@ article code {
   flex: 0 0 auto;
 }
 
+.shoutouts {
+  background: #17211b;
+  color: #f8fbf6;
+  display: grid;
+  gap: 42px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.shoutouts p {
+  color: #d2dfd0;
+  margin-bottom: 0;
+}
+
+.shoutout-list {
+  display: grid;
+  gap: 10px;
+}
+
+.shoutout-row {
+  align-items: start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 130px minmax(0, 1fr);
+  padding: 14px 0;
+}
+
+.shoutout-row span {
+  color: #f5fb72;
+  font-weight: 800;
+}
+
+.shoutout-row p {
+  color: #e7efe7;
+}
+
 @media (max-width: 900px) {
   .hero-grid,
   .command-layout,
   .split,
-  .checklist {
+  .checklist,
+  .shoutouts {
     grid-template-columns: 1fr;
   }
 
@@ -342,6 +379,10 @@ article code {
   }
 
   .runtime-row {
+    grid-template-columns: 1fr;
+  }
+
+  .shoutout-row {
     grid-template-columns: 1fr;
   }
 

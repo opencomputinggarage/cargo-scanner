@@ -51,6 +51,34 @@ const checks = [
   "Plain output with NO_COLOR or CARGO_SCANNER_PLAIN",
 ];
 
+const shoutouts = [
+  {
+    name: "Grype",
+    href: "https://github.com/anchore/grype",
+    detail: "Vulnerability scanning from Anchore.",
+  },
+  {
+    name: "Syft",
+    href: "https://github.com/anchore/syft",
+    detail: "SBOM generation from Anchore.",
+  },
+  {
+    name: "Trivy",
+    href: "https://github.com/aquasecurity/trivy",
+    detail: "Vulnerability scanning, SBOMs, and security databases from Aqua Security.",
+  },
+  {
+    name: "Charm",
+    href: "https://charm.sh/",
+    detail: "Bubble Tea, Bubbles, Lip Gloss, Huh, and Glamour power the terminal UX.",
+  },
+  {
+    name: "GoReleaser",
+    href: "https://goreleaser.com/",
+    detail: "Multi-platform release automation.",
+  },
+];
+
 function App() {
   const [activeCommand, setActiveCommand] = React.useState(commands[0]);
 
@@ -223,6 +251,24 @@ $ cargo-scanner
               <CheckCircle2 size={18} />
               {check}
             </p>
+          ))}
+        </div>
+      </section>
+
+      <section className="band shoutouts">
+        <div>
+          <h2>Open Source Shoutouts</h2>
+          <p>
+            Cargo Scanner stands on focused open source tools maintained by security,
+            terminal UX, and release engineering communities.
+          </p>
+        </div>
+        <div className="shoutout-list">
+          {shoutouts.map((item) => (
+            <a key={item.name} href={item.href} className="shoutout-row">
+              <span>{item.name}</span>
+              <p>{item.detail}</p>
+            </a>
           ))}
         </div>
       </section>
