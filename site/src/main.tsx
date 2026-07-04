@@ -48,6 +48,7 @@ const checks = [
   "Managed tools keep provenance manifests",
   "Self-update verifies release checksums",
   "JSON, SARIF, raw scanner output, and SBOM output",
+  "Summary-first result viewer with details on demand",
   "Plain output with NO_COLOR or CARGO_SCANNER_PLAIN",
 ];
 
@@ -239,7 +240,7 @@ $ cargo-scanner
         <article>
           <FileJson size={24} />
           <h3>Automation Output</h3>
-          <p>Text for humans, JSON and SARIF for automation, raw output when you need scanner-native data.</p>
+          <p>Text opens a summary-first result viewer; JSON and SARIF stay automation-friendly.</p>
         </article>
         <article>
           <RefreshCw size={24} />

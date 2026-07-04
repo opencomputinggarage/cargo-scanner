@@ -133,6 +133,13 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if *jsonOut {
 		*format = "json"
 	}
+	if shouldShowResultViewer(stdout, os.Stdin, *outputPath, *format) {
+		if err := showResultViewer(stdout, reports); err != nil {
+			_, _ = fmt.Fprintf(stderr, "show results: %v\n", err)
+			return 1
+		}
+		return exitCode
+	}
 	if err := writeReports(*outputPath, stdout, reports, *format); err != nil {
 		_, _ = fmt.Fprintf(stderr, "write report: %v\n", err)
 		return 1

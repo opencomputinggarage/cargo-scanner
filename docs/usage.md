@@ -101,9 +101,11 @@ Text report:
 cargo-scanner ./artifact.jar --format text
 ```
 
-Text reports use a terminal UI panel with severity cards, a distribution bar,
-and a top findings table. Findings with URLs are shown with clickable terminal
-links in terminals that support OSC 8 hyperlinks.
+Text reports use an interactive terminal UI when stdout is a terminal. The
+summary view opens first, `tab` switches to detailed findings, and `q`, `esc`,
+or `ctrl+c` closes the viewer. Findings with URLs are shown with clickable
+terminal links in terminals that support OSC 8 hyperlinks. JSON, SARIF, and
+file outputs remain non-interactive for automation.
 
 JSON report:
 

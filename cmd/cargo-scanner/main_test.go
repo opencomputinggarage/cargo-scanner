@@ -5,7 +5,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func TestNormalizeScanArgsAllowsFlagsAfterTarget(t *testing.T) {
@@ -92,6 +95,38 @@ func TestScanWizardOptionsVulnerabilityArgs(t *testing.T) {
 	for i := range want {
 		if args[i] != want[i] {
 			t.Fatalf("args = %#v, want %#v", args, want)
+		}
+	}
+}
+
+func TestResultViewerSummaryAndDetailsContent(t *testing.T) {
+	t.Setenv("CARGO_SCANNER_PLAIN", "1")
+	reports := []core.Report{{
+		Target:  core.Target{Path: "artifact.jar"},
+		Scanner: core.ScannerInfo{Name: "grype", Runtime: "managed"},
+		Status:  core.StatusCompleted,
+		Summary: core.Summary{Total: 1, High: 1},
+		Findings: []core.Finding{{
+			ID:             "CVE-2026-0001",
+			Severity:       core.SeverityHigh,
+			PackageName:    "demo",
+			PackageVersion: "1.0.0",
+			FixedVersions:  []string{"1.0.1"},
+			URL:            "https://example.test/CVE-2026-0001",
+		}},
+	}}
+
+	summary := resultSummaryContent(reports, 100)
+	for _, want := range []string{"Targets", "Findings", "artifact.jar", "HIGH"} {
+		if !strings.Contains(summary, want) {
+			t.Fatalf("summary missing %q:\n%s", want, summary)
+		}
+	}
+
+	details := resultDetailsContent(reports, 100)
+	for _, want := range []string{"All findings", "CVE-2026-0001", "demo 1.0.0", "https://example.test/CVE-2026-0001"} {
+		if !strings.Contains(details, want) {
+			t.Fatalf("details missing %q:\n%s", want, details)
 		}
 	}
 }
