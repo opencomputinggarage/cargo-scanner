@@ -161,6 +161,16 @@ The updater verifies the GitHub Release checksum before replacing the current
 executable. Use `--force` to reinstall the selected version and `--repo` to
 point at another `owner/repo` during testing.
 
+Options:
+
+- `--check`: check only; do not install.
+- `--force`: reinstall even when already on the selected version.
+- `--version vX.Y.Z`: install a specific release.
+- `--repo owner/repo`: update from another GitHub repo for fork testing.
+
+If the current executable is owned by root, run with `sudo` or use the install
+script with `CARGO_SCANNER_VERSION`.
+
 ## Shell Completion
 
 ```sh

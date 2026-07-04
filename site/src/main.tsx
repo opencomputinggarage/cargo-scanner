@@ -10,6 +10,7 @@ import {
   FileJson,
   Monitor,
   PackageCheck,
+  RefreshCw,
   ShieldCheck,
   Terminal,
 } from "lucide-react";
@@ -23,7 +24,11 @@ const commands = [
   },
   {
     label: "Interactive",
-    value: "cargo-scanner tui",
+    value: "cargo-scanner\ncargo-scanner scan\ncargo-scanner tui",
+  },
+  {
+    label: "Update",
+    value: "cargo-scanner update --check\ncargo-scanner update",
   },
   {
     label: "JSON report",
@@ -45,6 +50,7 @@ const runtimes = [
 const checks = [
   "Install script verifies checksums",
   "Managed tools keep provenance manifests",
+  "Self-update verifies release checksums",
   "JSON, SARIF, raw scanner output, and SBOM output",
   "Plain output with NO_COLOR or CARGO_SCANNER_PLAIN",
 ];
@@ -99,19 +105,22 @@ function App() {
               <span></span>
               <span></span>
             </div>
-            <pre>{`$ cargo-scanner tui
+            <pre>{`$ cargo-scanner
 ╭────────────────────────────────────────╮
-│ Cargo Scanner                          │
+│ Cargo Scanner   workspace safety       │
 │ Managed tools 3/3 ready                │
 │                                        │
-│ > Scan Downloads                       │
+│ > Guided Scan                          │
+│   Scan Downloads                       │
 │   Fix Environment                      │
-│   Generate SBOM                        │
 ╰────────────────────────────────────────╯
 
-$ cargo-scanner ~/Downloads --recursive
-Findings: 0 total
-OK No findings.`}</pre>
+$ cargo-scanner scan
+? Target path ~/Downloads
+? Scan directories recursively? Yes
+
+$ cargo-scanner update --check
+cargo-scanner is up to date`}</pre>
           </div>
         </div>
       </section>
@@ -159,8 +168,8 @@ OK No findings.`}</pre>
         <article>
           <Monitor size={28} />
           <h3>Use The TUI</h3>
-          <p>Open an interactive dashboard for common local workflows and environment status.</p>
-          <code>cargo-scanner tui</code>
+          <p>Open a searchable dashboard or guided scan wizard without memorizing flags.</p>
+          <code>cargo-scanner</code>
         </article>
       </section>
 
@@ -199,9 +208,9 @@ OK No findings.`}</pre>
           <p>Text for humans, JSON and SARIF for automation, raw output when you need scanner-native data.</p>
         </article>
         <article>
-          <Code2 size={24} />
-          <h3>Predictable DX</h3>
-          <p>doctor, doctor --fix, shell completion, install script, and explicit troubleshooting paths.</p>
+          <RefreshCw size={24} />
+          <h3>Self Update</h3>
+          <p>Check GitHub Releases, verify checksums, and replace the current executable in place.</p>
         </article>
       </section>
 

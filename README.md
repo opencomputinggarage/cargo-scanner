@@ -54,6 +54,13 @@ Install with Go:
 go install github.com/opencomputinggarage/cargo-scanner/cmd/cargo-scanner@latest
 ```
 
+After installing, future binary updates can be applied in place:
+
+```sh
+cargo-scanner update --check
+cargo-scanner update
+```
+
 Download archives directly from the
 [latest release](https://github.com/opencomputinggarage/cargo-scanner/releases/latest)
 for macOS, Linux, and Windows.
@@ -209,6 +216,13 @@ Releases, verifies SHA256, extracts the binary, and replaces the current
 executable. If the installed binary is owned by root, rerun with `sudo` or use
 the install script.
 
+Options:
+
+- `--check`: report whether an update is available without installing.
+- `--force`: reinstall the selected version even if it matches the current one.
+- `--version vX.Y.Z`: install a specific release.
+- `--repo owner/repo`: use another GitHub repository, mainly for testing forks.
+
 ## Docker And CI
 
 Pull the bundled runtime image:
@@ -345,6 +359,8 @@ cargo-scanner cache path
 cargo-scanner cache clean
 cargo-scanner tools path
 cargo-scanner tools list
+cargo-scanner update --check
+cargo-scanner update
 ```
 
 ## License
