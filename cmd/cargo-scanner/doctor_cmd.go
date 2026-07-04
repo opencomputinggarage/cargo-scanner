@@ -98,43 +98,104 @@ func printDoctorNextStep(stdout io.Writer, managedReady, dockerReady bool) {
 }
 
 func runDoctorFix(ctx context.Context, stdout, stderr io.Writer, image string) int {
-	_, _ = fmt.Fprintln(stdout, ui.Title("Cargo Scanner doctor --fix"))
+	if !shouldStartOperationProgress(stderr) {
+		_, _ = fmt.Fprintln(stdout, ui.Title("Cargo Scanner doctor --fix"))
+	}
 	rt := managed.New("")
 	if err := rt.Available(ctx); err != nil {
 		_, _ = fmt.Fprintf(stderr, "managed runtime unavailable: %v\n", err)
 		return 1
 	}
+	names := tools.SupportedNames()
+	total := len(names) + 1
+	var progress *operationProgress
+	if shouldStartOperationProgress(stderr) {
+		progress = startOperationProgress(stderr, "Repair scanner environment", total)
+		defer func() {
+			if err := progress.Stop(); err != nil {
+				_, _ = fmt.Fprintf(stderr, "close progress ui: %v\n", err)
+			}
+		}()
+	}
 	installer := tools.Installer{BinDir: rt.BinDir()}
-	for _, name := range tools.SupportedNames() {
+	if progress != nil {
+		installer.Progress = func(event tools.InstallProgress) {
+			progress.Stage(event.Stage, event.Tool+" "+event.Detail)
+		}
+	}
+	for i, name := range names {
+		if progress != nil {
+			progress.Step(i+1, total, "Checking tool", name)
+		}
 		scanner, _ := scannerByName(name)
 		if scanner.Detect(ctx, rt).Detected {
-			_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Status("installed"))
+			if progress != nil {
+				progress.Complete(true, fmt.Sprintf("%s already installed", name))
+			} else {
+				_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Status("installed"))
+			}
 			continue
 		}
-		_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Muted("installing..."))
+		if progress != nil {
+			progress.Stage("Installing tool", name)
+		} else {
+			_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Muted("installing..."))
+		}
 		result, err := installer.Install(ctx, name)
 		if err != nil {
+			if progress != nil {
+				progress.Complete(false, fmt.Sprintf("%s failed: %v", name, err))
+			}
 			_, _ = fmt.Fprintf(stderr, "install %s: %v\n", name, err)
 			_, _ = fmt.Fprintf(stderr, "hint: retry with cargo-scanner tools install %s\n", name)
 			return 1
 		}
-		_, _ = fmt.Fprintf(stdout, "  %s %s %s at %s\n", ui.Status("installed"), result.Name, result.Version, ui.Code(result.Path))
+		if progress != nil {
+			progress.Complete(true, fmt.Sprintf("%s %s installed", result.Name, result.Version))
+		} else {
+			_, _ = fmt.Fprintf(stdout, "  %s %s %s at %s\n", ui.Status("installed"), result.Name, result.Version, ui.Code(result.Path))
+		}
 	}
 	dockerRuntime := docker.New(image)
+	if progress != nil {
+		progress.Step(total, total, "Checking Docker image", image)
+	}
 	if err := dockerRuntime.Available(ctx); err != nil {
-		_, _ = fmt.Fprintf(stdout, "- docker: %s (%s)\n", ui.Status("skipped"), compactError(err))
+		if progress != nil {
+			progress.Complete(true, "Docker skipped: "+compactError(err))
+		} else {
+			_, _ = fmt.Fprintf(stdout, "- docker: %s (%s)\n", ui.Status("skipped"), compactError(err))
+		}
 		_, _ = fmt.Fprintf(stdout, "  hint: install/start Docker, then run %s\n", ui.Code("cargo-scanner runtime pull --scanner grype"))
 		return 0
 	}
 	if err := dockerRuntime.ImageAvailable(ctx); err == nil {
-		_, _ = fmt.Fprintf(stdout, "- docker image: %s (%s)\n", ui.Status("available"), image)
+		if progress != nil {
+			progress.Complete(true, "Docker image already available")
+		} else {
+			_, _ = fmt.Fprintf(stdout, "- docker image: %s (%s)\n", ui.Status("available"), image)
+		}
 		return 0
 	}
-	_, _ = fmt.Fprintf(stdout, "- docker image: pulling %s...\n", ui.Code(image))
-	if err := dockerRuntime.Pull(ctx, stdout); err != nil {
+	if progress != nil {
+		progress.Stage("Pulling Docker image", image)
+	} else {
+		_, _ = fmt.Fprintf(stdout, "- docker image: pulling %s...\n", ui.Code(image))
+	}
+	pullOutput := stdout
+	if progress != nil {
+		pullOutput = progress.Writer()
+	}
+	if err := dockerRuntime.Pull(ctx, pullOutput); err != nil {
+		if progress != nil {
+			progress.Complete(false, "Docker pull failed: "+err.Error())
+		}
 		_, _ = fmt.Fprintf(stderr, "pull docker image: %v\n", err)
 		_, _ = fmt.Fprintf(stderr, "hint: retry with cargo-scanner runtime pull --docker-image %s\n", image)
 		return 1
+	}
+	if progress != nil {
+		progress.Complete(true, "Docker image pulled")
 	}
 	return 0
 }

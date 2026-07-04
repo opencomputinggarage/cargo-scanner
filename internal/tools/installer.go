@@ -31,14 +31,21 @@ var supported = map[string]Tool{
 }
 
 type Installer struct {
-	HTTP   *http.Client
-	BinDir string
+	HTTP     *http.Client
+	BinDir   string
+	Progress func(InstallProgress)
 }
 
 type InstallResult struct {
 	Name    string
 	Version string
 	Path    string
+}
+
+type InstallProgress struct {
+	Tool   string
+	Stage  string
+	Detail string
 }
 
 type Manifest struct {
@@ -70,11 +77,13 @@ func (i Installer) Install(ctx context.Context, name string) (InstallResult, err
 	if err := os.MkdirAll(i.BinDir, 0o700); err != nil {
 		return InstallResult{}, err
 	}
+	i.progress(tool.Name, "Resolving release", tool.Repo)
 	release, err := i.release(ctx, tool.Repo, requestedVersion)
 	if err != nil {
 		return InstallResult{}, err
 	}
 	version := strings.TrimPrefix(release.TagName, "v")
+	i.progress(tool.Name, "Release resolved", version)
 	archiveName, err := archiveName(tool.Name, version, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return InstallResult{}, err
@@ -88,10 +97,12 @@ func (i Installer) Install(ctx context.Context, name string) (InstallResult, err
 	if err != nil {
 		return InstallResult{}, err
 	}
+	i.progress(tool.Name, "Downloading archive", archiveName)
 	archiveBytes, err := i.download(ctx, archiveURL)
 	if err != nil {
 		return InstallResult{}, err
 	}
+	i.progress(tool.Name, "Downloading checksum", checksumName)
 	checksumBytes, err := i.download(ctx, checksumURL)
 	if err != nil {
 		return InstallResult{}, err
@@ -100,15 +111,18 @@ func (i Installer) Install(ctx context.Context, name string) (InstallResult, err
 	if err != nil {
 		return InstallResult{}, err
 	}
+	i.progress(tool.Name, "Verifying checksum", archiveName)
 	if got := sha256Hex(archiveBytes); got != expected {
 		return InstallResult{}, fmt.Errorf("checksum mismatch for %s: got %s want %s", archiveName, got, expected)
 	}
+	i.progress(tool.Name, "Extracting binary", tool.Name)
 	binary, err := extractBinary(archiveBytes, tool.Name)
 	if err != nil {
 		return InstallResult{}, err
 	}
 	dst := filepath.Join(i.BinDir, tool.Name)
 	tmp := dst + ".tmp"
+	i.progress(tool.Name, "Installing binary", dst)
 	if err := os.WriteFile(tmp, binary, 0o700); err != nil {
 		return InstallResult{}, err
 	}
@@ -131,7 +145,14 @@ func (i Installer) Install(ctx context.Context, name string) (InstallResult, err
 	if err := writeManifest(dst+".json", manifest); err != nil {
 		return InstallResult{}, err
 	}
+	i.progress(tool.Name, "Installed", version)
 	return InstallResult{Name: tool.Name, Version: version, Path: dst}, nil
+}
+
+func (i Installer) progress(tool, stage, detail string) {
+	if i.Progress != nil {
+		i.Progress(InstallProgress{Tool: tool, Stage: stage, Detail: detail})
+	}
 }
 
 func splitToolSpec(spec string) (string, string) {

@@ -7,6 +7,8 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+
+	"github.com/mattn/go-isatty"
 )
 
 var version = "dev"
@@ -17,6 +19,9 @@ func main() {
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
+		if isInteractiveTerminal(stdout) && isatty.IsTerminal(os.Stdin.Fd()) {
+			return runTUI(ctx, nil, stdout, stderr)
+		}
 		usage(stderr)
 		return 2
 	}
@@ -39,6 +44,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return runTools(ctx, args[1:], stdout, stderr)
 	case "cache":
 		return runCache(ctx, args[1:], stdout, stderr)
+	case "update":
+		return runUpdate(ctx, args[1:], stdout, stderr)
 	case "version":
 		_, _ = fmt.Fprintf(stdout, "cargo-scanner %s\n", displayVersion())
 		return 0
@@ -62,7 +69,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 }
 
 var topLevelCommands = []string{
-	"init", "scan", "sbom", "doctor", "tui", "completion", "runtime", "tools", "cache", "version", "help",
+	"init", "scan", "sbom", "doctor", "tui", "completion", "runtime", "tools", "cache", "update", "version", "help",
 }
 
 func suggestCommand(input string) string {
@@ -146,7 +153,9 @@ func usage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `Cargo Scanner scans inbound artifacts before you unpack them.
 
 Usage:
+  cargo-scanner
   cargo-scanner init
+  cargo-scanner scan
   cargo-scanner scan [options] <path>
   cargo-scanner <path> [scan options]
   cargo-scanner sbom [options] <path>
@@ -159,7 +168,11 @@ Usage:
   cargo-scanner tools update all
   cargo-scanner tools update-db trivy
   cargo-scanner cache clean
+  cargo-scanner update
   cargo-scanner version
+
+Run cargo-scanner with no arguments to open the dashboard.
+Run cargo-scanner scan with no target in a terminal to open the guided scan wizard.
 
 Scan options:
   --scanner grype        Scanner to use: grype, trivy, syft
@@ -176,5 +189,6 @@ Scan options:
   --exclude "*.tmp"      Exclude glob, comma-separated
   --fail-on high         Exit 1 when max severity meets threshold
   --timeout 15m          Scan timeout
+  --tui=false            Disable terminal scan progress UI
 `)
 }

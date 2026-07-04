@@ -8,14 +8,25 @@ This document is the command reference. Start with the
 ```sh
 cargo-scanner init
 cargo-scanner doctor --fix
+cargo-scanner
 cargo-scanner tui
+cargo-scanner scan
 ```
 
 `init` writes `.cargo-scanner.yaml`. `doctor --fix` installs missing managed
 scanner tools and pulls the default Docker runtime image when Docker is
 available.
 
+When stdout/stderr/stdin are terminals, `cargo-scanner` opens the dashboard and
+`cargo-scanner scan` opens the guided scan wizard.
+
 ## Scanning
+
+Guided scan:
+
+```sh
+cargo-scanner scan
+```
 
 The short form scans directly:
 
@@ -40,6 +51,16 @@ cargo-scanner ./artifact.jar --fail-on high
 cargo-scanner ./artifact.jar --timeout 30m
 cargo-scanner ./downloads --recursive --include "*.jar,*.zip" --exclude "*.tmp"
 ```
+
+Live progress UI:
+
+```sh
+cargo-scanner ~/Downloads --recursive
+cargo-scanner ~/Downloads --recursive --tui=false
+```
+
+The live scan UI is written to stderr only when stderr is a terminal, so JSON
+and SARIF output on stdout remain machine-readable.
 
 ## Runtime Selection
 
@@ -108,6 +129,10 @@ Each managed install downloads the upstream GitHub Release archive and its
 `checksums.txt`, verifies SHA256, and writes a provenance manifest next to the
 installed binary.
 
+In a terminal, install and update commands show a progress panel with release
+resolution, archive download, checksum verification, extraction, and install
+steps.
+
 ## Trivy Database
 
 Trivy can take longer on first use because it needs a vulnerability database.
@@ -123,6 +148,18 @@ cargo-scanner tools update-db trivy
 cargo-scanner cache path
 cargo-scanner cache clean
 ```
+
+## Updating Cargo Scanner
+
+```sh
+cargo-scanner update --check
+cargo-scanner update
+cargo-scanner update --version v0.1.11
+```
+
+The updater verifies the GitHub Release checksum before replacing the current
+executable. Use `--force` to reinstall the selected version and `--repo` to
+point at another `owner/repo` during testing.
 
 ## Shell Completion
 
@@ -142,7 +179,8 @@ cargo-scanner tui
 Keyboard:
 
 - `up/down` or `j/k`: move
-- `enter`: choose an action and print the command
+- `/`: filter actions
+- `enter`: choose and run an action
 - `q`, `esc`, or `ctrl+c`: quit
 
 For non-interactive checks:
@@ -166,6 +204,8 @@ cargo-scanner doctor --fix
 cargo-scanner tools install all
 cargo-scanner runtime pull --scanner grype
 ```
+
+`doctor --fix` and `runtime pull` show live progress/log panels in a terminal.
 
 Plain output:
 

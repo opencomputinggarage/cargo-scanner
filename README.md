@@ -24,11 +24,15 @@ cargo-scanner ~/Downloads --recursive
 Prefer an interactive entry point:
 
 ```sh
+cargo-scanner
 cargo-scanner tui
+cargo-scanner scan
 ```
 
-The TUI shows environment status and common actions such as scanning Downloads,
-fixing missing tools, generating an SBOM, and writing JSON reports.
+Running `cargo-scanner` opens the terminal dashboard when stdout is a TTY.
+Running `cargo-scanner scan` without a target opens a guided scan wizard. The
+TUI shows environment status and common actions such as guided scans, scanning
+Downloads, fixing missing tools, generating an SBOM, and writing JSON reports.
 
 ## Install
 
@@ -74,8 +78,16 @@ cargo-scanner doctor
 
 `init` writes `.cargo-scanner.yaml`. `doctor --fix` installs missing managed
 tools and pulls the default Docker runtime image when Docker is available.
+In a terminal, long-running repair steps show a live progress panel with the
+current action, elapsed time, completed steps, and Docker pull logs.
 
 ## Everyday Scans
+
+Guided scan:
+
+```sh
+cargo-scanner scan
+```
 
 Scan one artifact:
 
@@ -114,6 +126,10 @@ Write SARIF for GitHub code scanning:
 ```sh
 cargo-scanner ./artifact.jar --format sarif --output results.sarif
 ```
+
+When stderr is a terminal, scans show a live TUI with the current file,
+progress bar, activity log, finding count, max severity, and a final summary.
+Use `--tui=false` to disable the live progress UI.
 
 ## SBOM
 
@@ -159,13 +175,39 @@ cargo-scanner tools uninstall trivy
 
 Each managed install downloads the upstream release archive and checksum file,
 verifies SHA256, installs the binary, and writes a provenance manifest next to
-the binary.
+the binary. In a terminal, install and update commands show the current release,
+download, checksum, extraction, and install step.
 
 Set a different managed home:
 
 ```sh
 export CARGO_SCANNER_HOME="$HOME/.cache/cargo-scanner"
 ```
+
+## Updating Cargo Scanner
+
+Check for a new Cargo Scanner release:
+
+```sh
+cargo-scanner update --check
+```
+
+Install the latest release in place:
+
+```sh
+cargo-scanner update
+```
+
+Install a specific version:
+
+```sh
+cargo-scanner update --version v0.1.11
+```
+
+The updater downloads the release archive and `checksums.txt` from GitHub
+Releases, verifies SHA256, extracts the binary, and replaces the current
+executable. If the installed binary is owned by root, rerun with `sudo` or use
+the install script.
 
 ## Docker And CI
 
@@ -174,6 +216,8 @@ Pull the bundled runtime image:
 ```sh
 cargo-scanner runtime pull --docker-image ghcr.io/opencomputinggarage/cargo-scanner-runtime:latest
 ```
+
+Runtime pulls show Docker output inside a live log panel when stderr is a TTY.
 
 Use Cargo Scanner with Docker runtime:
 

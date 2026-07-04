@@ -24,6 +24,22 @@ func TestNormalizeScanArgsAllowsFlagsAfterTarget(t *testing.T) {
 	}
 }
 
+func TestNormalizeScanArgsAllowsTUIFlagAfterTarget(t *testing.T) {
+	args, err := normalizeScanArgs([]string{"README.md", "--tui=false"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"--tui=false", "README.md"}
+	if len(args) != len(want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+	for i := range want {
+		if args[i] != want[i] {
+			t.Fatalf("args = %#v, want %#v", args, want)
+		}
+	}
+}
+
 func TestRunVersion(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"version"}, &stdout, &stderr)
@@ -98,6 +114,9 @@ func TestRunCompletionZsh(t *testing.T) {
 	if !bytes.Contains(stdout.Bytes(), []byte("#compdef cargo-scanner")) {
 		t.Fatalf("expected zsh completion, got %s", stdout.String())
 	}
+	if !bytes.Contains(stdout.Bytes(), []byte("update:update cargo-scanner")) {
+		t.Fatalf("expected update completion, got %s", stdout.String())
+	}
 }
 
 func TestRunTUIPrint(t *testing.T) {
@@ -152,7 +171,7 @@ func TestRunToolsList(t *testing.T) {
 	if !bytes.Contains(stdout.Bytes(), []byte("Managed tools path:")) {
 		t.Fatalf("expected tools path, got %s", stdout.String())
 	}
-	if !bytes.Contains(stdout.Bytes(), []byte("- grype: missing")) {
+	if !bytes.Contains(stdout.Bytes(), []byte("grype")) || !bytes.Contains(stdout.Bytes(), []byte("missing")) {
 		t.Fatalf("expected grype status, got %s", stdout.String())
 	}
 }
@@ -171,5 +190,21 @@ func TestRunScanWritesMissingScannerJSON(t *testing.T) {
 	}
 	if !bytes.Contains(stdout.Bytes(), []byte(`"status": "failed"`)) {
 		t.Fatalf("expected failed JSON, got %s", stdout.String())
+	}
+}
+
+func TestSuggestCommandUpdate(t *testing.T) {
+	if got := suggestCommand("updat"); got != "update" {
+		t.Fatalf("suggestCommand = %q, want update", got)
+	}
+}
+
+func TestUpdateChecksumLine(t *testing.T) {
+	got, err := checksumLine("abc123  cargo-scanner_0.1.11_darwin_arm64.tar.gz\n", "cargo-scanner_0.1.11_darwin_arm64.tar.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "abc123" {
+		t.Fatalf("checksum = %q, want abc123", got)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-isatty"
 	"github.com/opencomputinggarage/cargo-scanner/internal/config"
 	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 	"github.com/opencomputinggarage/cargo-scanner/internal/report"
@@ -97,6 +98,7 @@ func normalizeScanArgs(args []string) ([]string, error) {
 	boolFlags := map[string]bool{
 		"--json":      true,
 		"--recursive": true,
+		"--tui":       true,
 	}
 	var flags []string
 	var positionals []string
@@ -212,4 +214,9 @@ func writeReports(path string, stdout io.Writer, reports []core.Report, format s
 	default:
 		return fmt.Errorf("unknown output format %q", format)
 	}
+}
+
+func isInteractiveTerminal(w io.Writer) bool {
+	file, ok := w.(*os.File)
+	return ok && isatty.IsTerminal(file.Fd())
 }

@@ -7,9 +7,11 @@ import (
 	"io"
 	"os"
 
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/managed"
 	"github.com/opencomputinggarage/cargo-scanner/internal/tools"
+	"github.com/opencomputinggarage/cargo-scanner/internal/ui"
 )
 
 func runTools(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -99,24 +101,29 @@ func runToolsList(ctx context.Context, stdout, stderr io.Writer, rt managed.Runt
 		_, _ = fmt.Fprintf(stderr, "managed tools unavailable: %v\n", err)
 		return 1
 	}
-	_, _ = fmt.Fprintf(stdout, "Managed tools path: %s\n", rt.BinDir())
+	_, _ = fmt.Fprintf(stdout, "%s\n\nManaged tools path: %s\n\n", ui.Title("Managed scanner tools"), ui.Code(rt.BinDir()))
+	rows := [][]string{}
 	for _, name := range tools.SupportedNames() {
 		scanner, _ := scannerByName(name)
 		c := scanner.Detect(ctx, rt)
 		if c.Detected {
+			digest := ""
+			if manifest, err := tools.ReadManifest(rt.BinDir() + "/" + name + ".json"); err == nil && manifest.SHA256 != "" {
+				digest = manifest.SHA256[:12]
+			}
 			if c.Version != "" {
-				if manifest, err := tools.ReadManifest(rt.BinDir() + "/" + name + ".json"); err == nil && manifest.SHA256 != "" {
-					_, _ = fmt.Fprintf(stdout, "- %s: installed %s (%s)\n", name, c.Version, manifest.SHA256[:12])
-				} else {
-					_, _ = fmt.Fprintf(stdout, "- %s: installed %s\n", name, c.Version)
-				}
+				rows = append(rows, []string{name, ui.Status("installed"), c.Version, digest})
 			} else {
-				_, _ = fmt.Fprintf(stdout, "- %s: installed\n", name)
+				rows = append(rows, []string{name, ui.Status("installed"), "", digest})
 			}
 		} else {
-			_, _ = fmt.Fprintf(stdout, "- %s: missing\n", name)
+			rows = append(rows, []string{name, ui.Status("missing"), "", ""})
 		}
 	}
+	_, _ = fmt.Fprintln(stdout, table.New().
+		Headers("Tool", "Status", "Version", "SHA256").
+		Rows(rows...).
+		Render())
 	return 0
 }
 
@@ -138,17 +145,49 @@ func runToolsInstall(ctx context.Context, args []string, stdout, stderr io.Write
 	if fs.Arg(0) == "all" {
 		names = tools.SupportedNames()
 	}
-	installer := tools.Installer{BinDir: rt.BinDir()}
-	for _, name := range names {
+	var progress *operationProgress
+	if shouldStartOperationProgress(stderr) {
+		title := "Installing scanner tools"
 		if update {
-			_, _ = fmt.Fprintf(stdout, "Updating %s...\n", name)
+			title = "Updating scanner tools"
+		}
+		progress = startOperationProgress(stderr, title, len(names))
+		defer func() {
+			if err := progress.Stop(); err != nil {
+				_, _ = fmt.Fprintf(stderr, "close progress ui: %v\n", err)
+			}
+		}()
+	}
+	installer := tools.Installer{BinDir: rt.BinDir()}
+	if progress != nil {
+		installer.Progress = func(event tools.InstallProgress) {
+			progress.Stage(event.Stage, event.Tool+" "+event.Detail)
+		}
+	}
+	for i, name := range names {
+		if update {
+			if progress != nil {
+				progress.Step(i+1, len(names), "Updating", name)
+			} else {
+				_, _ = fmt.Fprintf(stdout, "Updating %s...\n", name)
+			}
 		} else {
-			_, _ = fmt.Fprintf(stdout, "Installing %s...\n", name)
+			if progress != nil {
+				progress.Step(i+1, len(names), "Installing", name)
+			} else {
+				_, _ = fmt.Fprintf(stdout, "Installing %s...\n", name)
+			}
 		}
 		result, err := installer.Install(ctx, name)
 		if err != nil {
+			if progress != nil {
+				progress.Complete(false, fmt.Sprintf("%s failed: %v", name, err))
+			}
 			_, _ = fmt.Fprintf(stderr, "install %s: %v\n", name, err)
 			return 1
+		}
+		if progress != nil {
+			progress.Complete(true, fmt.Sprintf("%s %s installed", result.Name, result.Version))
 		}
 		_, _ = fmt.Fprintf(stdout, "- %s %s installed at %s\n", result.Name, result.Version, result.Path)
 	}

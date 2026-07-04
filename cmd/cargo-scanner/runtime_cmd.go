@@ -29,9 +29,27 @@ func runRuntime(ctx context.Context, args []string, stdout, stderr io.Writer) in
 			image = docker.DefaultImage(strings.ToLower(strings.TrimSpace(*scannerName)))
 		}
 		rt := docker.New(image)
-		if err := rt.Pull(ctx, stdout); err != nil {
+		pullOutput := stdout
+		var progress *operationProgress
+		if shouldStartOperationProgress(stderr) {
+			progress = startOperationProgress(stderr, "Pull Docker runtime", 1)
+			progress.Step(1, 1, "Pulling image", image)
+			pullOutput = progress.Writer()
+			defer func() {
+				if err := progress.Stop(); err != nil {
+					_, _ = fmt.Fprintf(stderr, "close progress ui: %v\n", err)
+				}
+			}()
+		}
+		if err := rt.Pull(ctx, pullOutput); err != nil {
+			if progress != nil {
+				progress.Complete(false, err.Error())
+			}
 			_, _ = fmt.Fprintf(stderr, "pull runtime image: %v\n", err)
 			return 1
+		}
+		if progress != nil {
+			progress.Complete(true, "Image pulled: "+image)
 		}
 		return 0
 	default:

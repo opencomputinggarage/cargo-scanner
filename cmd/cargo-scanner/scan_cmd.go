@@ -26,6 +26,7 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	failOnRaw := fs.String("fail-on", "", "exit 1 when max severity is at least this value")
 	timeout := fs.Duration("timeout", 15*time.Minute, "scan timeout")
 	recursive := fs.Bool("recursive", false, "scan files under a directory")
+	scanTUI := fs.Bool("tui", true, "show TUI scan progress when stderr is a terminal")
 	includeRaw := fs.String("include", "", "comma-separated include globs")
 	excludeRaw := fs.String("exclude", "", "comma-separated exclude globs")
 	normalizedArgs, err := normalizeScanArgs(args)
@@ -37,6 +38,9 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if fs.NArg() != 1 {
+		if fs.NArg() == 0 && shouldRunScanWizard(stdout, stderr) {
+			return runScanWizard(ctx, stdout, stderr)
+		}
 		_, _ = fmt.Fprintln(stderr, "scan requires exactly one target path")
 		_, _ = fmt.Fprintln(stderr, "example: cargo-scanner scan ~/Downloads --recursive")
 		return 2
@@ -72,12 +76,28 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintln(stderr, err)
 		return 1
 	}
+	var progress *scanProgress
+	if shouldStartScanProgress(stderr, *scanTUI) {
+		progress = startScanProgress(stderr, fs.Arg(0), scanner.Name(), rt.Name(), len(targets))
+		defer func() {
+			if err := progress.Stop(); err != nil {
+				_, _ = fmt.Fprintf(stderr, "close scan tui: %v\n", err)
+			}
+		}()
+		progress.Stage("Scanner and runtime ready")
+	}
 	scanCtx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
 	var reports []core.Report
 	exitCode := 0
-	for _, target := range targets {
+	for i, target := range targets {
+		if progress != nil {
+			progress.StartTarget(i+1, len(targets), target)
+		}
 		result, err := scanner.Scan(scanCtx, rt, target, core.ScanOptions{KeepRaw: *rawOutputPath != ""})
+		if progress != nil {
+			progress.FinishTarget(i+1, len(targets), result, err)
+		}
 		reports = append(reports, result)
 		if err != nil {
 			exitCode = 1

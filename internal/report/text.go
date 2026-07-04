@@ -5,23 +5,22 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 	"github.com/opencomputinggarage/cargo-scanner/internal/ui"
 )
 
+var (
+	reportPanelStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2)
+	reportLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	reportValueStyle = lipgloss.NewStyle().Bold(true)
+)
+
 func WriteText(w io.Writer, r core.Report) error {
-	_, err := fmt.Fprintf(w, "%s\n\nTarget:  %s\nScanner: %s", ui.Title("Cargo Scanner"), ui.Code(r.Target.Path), r.Scanner.Name)
-	if err != nil {
-		return err
-	}
-	if r.Scanner.Version != "" {
-		if _, err := fmt.Fprintf(w, " %s", r.Scanner.Version); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(w, " (%s)\nStatus:  %s\n\n", r.Scanner.Runtime, ui.Status(string(r.Status))); err != nil {
+	if _, err := fmt.Fprintln(w, reportHeader(r)); err != nil {
 		return err
 	}
 	if r.Status == core.StatusFailed {
@@ -50,19 +49,35 @@ func WriteText(w io.Writer, r core.Report) error {
 	if len(findings) < limit {
 		limit = len(findings)
 	}
-	if _, err := fmt.Fprintln(w, ui.Section("Top findings")+":"); err != nil {
+	if _, err := fmt.Fprintln(w, ui.Section("Top findings")); err != nil {
 		return err
 	}
-	for _, f := range findings[:limit] {
-		fixed := ""
-		if len(f.FixedVersions) > 0 {
-			fixed = " fixed in " + f.FixedVersions[0]
-		}
-		if _, err := fmt.Fprintf(w, "- %-8s %-18s %s %s%s\n", ui.Severity(string(f.Severity)), f.ID, f.PackageName, f.PackageVersion, fixed); err != nil {
-			return err
-		}
+	if _, err := fmt.Fprintln(w, findingsTable(findings[:limit])); err != nil {
+		return err
 	}
 	return nil
+}
+
+func reportHeader(r core.Report) string {
+	scanner := r.Scanner.Name
+	if r.Scanner.Version != "" {
+		scanner += " " + r.Scanner.Version
+	}
+	lines := []string{
+		ui.Title("Cargo Scanner"),
+		"",
+		reportLine("Target", ui.Code(r.Target.Path)),
+		reportLine("Scanner", scanner),
+		reportLine("Runtime", r.Scanner.Runtime),
+		reportLine("Status", ui.Status(string(r.Status))),
+		reportLine("Started", r.StartedAt.Format("2006-01-02 15:04:05 UTC")),
+		reportLine("Duration", r.EndedAt.Sub(r.StartedAt).String()),
+	}
+	return reportPanelStyle.Render(strings.Join(lines, "\n"))
+}
+
+func reportLine(label, value string) string {
+	return reportLabelStyle.Render(label+": ") + reportValueStyle.Render(value)
 }
 
 func summaryTable(s core.Summary) string {
@@ -76,6 +91,27 @@ func summaryTable(s core.Summary) string {
 			[]string{ui.Severity("Negligible"), strconv.Itoa(s.Negligible)},
 			[]string{"Unknown", strconv.Itoa(s.Unknown)},
 		).
+		Render()
+}
+
+func findingsTable(findings []core.Finding) string {
+	rows := make([][]string, 0, len(findings))
+	for _, f := range findings {
+		fixed := ""
+		if len(f.FixedVersions) > 0 {
+			fixed = f.FixedVersions[0]
+		}
+		pkg := strings.TrimSpace(f.PackageName + " " + f.PackageVersion)
+		rows = append(rows, []string{
+			ui.Severity(string(f.Severity)),
+			f.ID,
+			pkg,
+			fixed,
+		})
+	}
+	return table.New().
+		Headers("Severity", "ID", "Package", "Fixed").
+		Rows(rows...).
 		Render()
 }
 
