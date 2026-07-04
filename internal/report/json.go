@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func WriteJSON(w io.Writer, r core.Report) error {

@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 const defaultImage = "anchore/grype:latest"

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byeonggi/cargo-scanner/internal/config"
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/config"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func runSBOM(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -85,6 +85,7 @@ func runSBOM(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			} else {
 				_, _ = fmt.Fprintf(stderr, "sbom failed: %v\n", err)
 			}
+			printFailureHint(stderr, err)
 		}
 	}
 	if *jsonOut {

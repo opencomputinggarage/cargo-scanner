@@ -1,3 +1,3 @@
-module github.com/byeonggi/cargo-scanner
+module github.com/opencomputinggarage/cargo-scanner
 
 go 1.26

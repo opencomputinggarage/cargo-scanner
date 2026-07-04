@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byeonggi/cargo-scanner/internal/config"
-	"github.com/byeonggi/cargo-scanner/internal/core"
-	"github.com/byeonggi/cargo-scanner/internal/report"
-	"github.com/byeonggi/cargo-scanner/internal/runtimes/docker"
-	"github.com/byeonggi/cargo-scanner/internal/runtimes/managed"
-	"github.com/byeonggi/cargo-scanner/internal/runtimes/native"
-	"github.com/byeonggi/cargo-scanner/internal/scanners/grype"
-	"github.com/byeonggi/cargo-scanner/internal/scanners/syft"
-	"github.com/byeonggi/cargo-scanner/internal/scanners/trivy"
+	"github.com/opencomputinggarage/cargo-scanner/internal/config"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/report"
+	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/docker"
+	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/managed"
+	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/native"
+	"github.com/opencomputinggarage/cargo-scanner/internal/scanners/grype"
+	"github.com/opencomputinggarage/cargo-scanner/internal/scanners/syft"
+	"github.com/opencomputinggarage/cargo-scanner/internal/scanners/trivy"
 )
 
 func runtimeByName(ctx context.Context, name string, dockerImage string, scannerName string) (core.Runtime, error) {
@@ -172,6 +172,21 @@ func mergeList(base, override []string) []string {
 		return base
 	}
 	return append(append([]string(nil), base...), override...)
+}
+
+func printFailureHint(w io.Writer, err error) {
+	if err == nil {
+		return
+	}
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "docker unavailable"):
+		_, _ = fmt.Fprintln(w, "hint: start Docker, or use --runtime managed")
+	case strings.Contains(msg, "docker image"):
+		_, _ = fmt.Fprintln(w, "hint: run cargo-scanner runtime pull --scanner grype, or pass --docker-image ghcr.io/opencomputinggarage/cargo-scanner-runtime:latest")
+	case strings.Contains(msg, "not installed in managed tools"), strings.Contains(msg, "unavailable"):
+		_, _ = fmt.Fprintln(w, "hint: run cargo-scanner doctor --fix")
+	}
 }
 
 func writeReports(path string, stdout io.Writer, reports []core.Report, format string) error {

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func TestParse(t *testing.T) {

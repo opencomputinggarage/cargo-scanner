@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
-	"github.com/byeonggi/cargo-scanner/internal/runtimes/managed"
-	"github.com/byeonggi/cargo-scanner/internal/tools"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/managed"
+	"github.com/opencomputinggarage/cargo-scanner/internal/tools"
 )
 
 func runTools(ctx context.Context, args []string, stdout, stderr io.Writer) int {

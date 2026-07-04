@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/byeonggi/cargo-scanner/internal/runtimes/managed"
+	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/managed"
 )
 
 func runCache(_ context.Context, args []string, stdout, stderr io.Writer) int {

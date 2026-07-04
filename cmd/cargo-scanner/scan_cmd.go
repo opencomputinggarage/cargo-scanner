@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/byeonggi/cargo-scanner/internal/config"
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/config"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -85,6 +85,7 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			} else {
 				_, _ = fmt.Fprintf(stderr, "scan failed: %v\n", err)
 			}
+			printFailureHint(stderr, err)
 			continue
 		}
 		if failOn != "" && core.SeverityRank(result.Summary.MaxSeverity()) >= core.SeverityRank(failOn) {

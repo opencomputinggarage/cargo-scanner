@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 type Scanner struct {

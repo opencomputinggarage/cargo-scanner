@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 type Runtime struct{}

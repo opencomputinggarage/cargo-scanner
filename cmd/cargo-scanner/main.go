@@ -19,12 +19,16 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	switch args[0] {
+	case "init":
+		return runInit(args[1:], stdout, stderr)
 	case "scan":
 		return runScan(ctx, args[1:], stdout, stderr)
 	case "sbom":
 		return runSBOM(ctx, args[1:], stdout, stderr)
 	case "doctor":
-		return runDoctor(ctx, stdout)
+		return runDoctor(ctx, args[1:], stdout, stderr)
+	case "completion":
+		return runCompletion(args[1:], stdout, stderr)
 	case "runtime":
 		return runRuntime(ctx, args[1:], stdout, stderr)
 	case "tools":
@@ -48,9 +52,11 @@ func usage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `Cargo Scanner scans inbound artifacts before you unpack them.
 
 Usage:
+  cargo-scanner init
   cargo-scanner scan [options] <path>
   cargo-scanner sbom [options] <path>
-  cargo-scanner doctor
+  cargo-scanner doctor [--fix]
+  cargo-scanner completion <bash|zsh|fish|powershell>
   cargo-scanner runtime pull --scanner grype
   cargo-scanner tools doctor
   cargo-scanner tools install grype

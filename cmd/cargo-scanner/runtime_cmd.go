@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/byeonggi/cargo-scanner/internal/runtimes/docker"
+	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/docker"
 )
 
 func runRuntime(ctx context.Context, args []string, stdout, stderr io.Writer) int {

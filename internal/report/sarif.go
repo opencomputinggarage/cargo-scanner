@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 type sarifLog struct {
@@ -115,7 +115,7 @@ func WriteSARIF(w io.Writer, reports []core.Report) error {
 			Tool: sarifTool{Driver: sarifDriver{
 				Name:           scannerName,
 				Version:        scannerVersion,
-				InformationURI: "https://github.com/byeonggi/cargo-scanner",
+				InformationURI: "https://github.com/opencomputinggarage/cargo-scanner",
 				Rules:          rules,
 			}},
 			Results: results,

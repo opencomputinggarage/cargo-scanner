@@ -35,6 +35,34 @@ func TestRunVersion(t *testing.T) {
 	}
 }
 
+func TestRunInitWritesConfig(t *testing.T) {
+	tmp := t.TempDir()
+	configPath := filepath.Join(tmp, ".cargo-scanner.yaml")
+	var stdout, stderr bytes.Buffer
+	code := run(context.Background(), []string{"init", "--config", configPath}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("code = %d, stderr = %s", code, stderr.String())
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(data, []byte("runtime: managed")) {
+		t.Fatalf("expected managed default, got %s", string(data))
+	}
+}
+
+func TestRunCompletionZsh(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run(context.Background(), []string{"completion", "zsh"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("code = %d, stderr = %s", code, stderr.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("#compdef cargo-scanner")) {
+		t.Fatalf("expected zsh completion, got %s", stdout.String())
+	}
+}
+
 func TestRunScanMissingTarget(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"scan"}, &stdout, &stderr)

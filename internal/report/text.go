@@ -5,7 +5,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func WriteText(w io.Writer, r core.Report) error {

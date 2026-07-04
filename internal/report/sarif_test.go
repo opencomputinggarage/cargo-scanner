@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 func TestWriteSARIF(t *testing.T) {

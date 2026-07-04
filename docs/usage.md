@@ -1,5 +1,17 @@
 # Cargo Scanner Usage
 
+## First Run
+
+```sh
+cargo-scanner init
+cargo-scanner doctor --fix
+cargo-scanner scan ./artifact.jar
+```
+
+`init` writes `.cargo-scanner.yaml`. `doctor --fix` installs missing managed
+scanner tools and pulls the default Docker runtime image when Docker is
+available.
+
 ## Runtime Selection
 
 Cargo Scanner supports three local runtimes:
@@ -14,6 +26,7 @@ Cargo Scanner supports three local runtimes:
 cargo-scanner scan ./artifact.jar --runtime auto
 cargo-scanner scan ./artifact.jar --runtime managed
 cargo-scanner scan ./artifact.jar --runtime native
+cargo-scanner scan ./artifact.jar --runtime docker --docker-image ghcr.io/opencomputinggarage/cargo-scanner-runtime:latest
 ```
 
 ## Managed Tools
@@ -63,6 +76,14 @@ cargo-scanner scan ./artifact.jar --format sarif --output results.sarif
 ```
 
 Use SARIF output for GitHub code scanning integrations.
+
+## Shell Completion
+
+```sh
+cargo-scanner completion zsh > /usr/local/share/zsh/site-functions/_cargo-scanner
+cargo-scanner completion bash > ~/.cargo-scanner-completion.bash
+cargo-scanner completion fish > ~/.config/fish/completions/cargo-scanner.fish
+```
 
 ## SBOM
 

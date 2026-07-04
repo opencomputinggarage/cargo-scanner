@@ -3,7 +3,7 @@ package grype
 import (
 	"encoding/json"
 
-	"github.com/byeonggi/cargo-scanner/internal/core"
+	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
 
 type document struct {
