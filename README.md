@@ -135,6 +135,10 @@ cargo-scanner ./artifact.jar --format sarif --output results.sarif
 In a terminal, scans show the current file and progress. Use `--tui=false` to
 disable the live progress UI.
 
+Text results render as a terminal report panel with severity cards, a
+distribution bar, and a top findings table. When scanner output includes a
+vulnerability URL, supported terminals show a clickable detail link.
+
 ## SBOM
 
 Generate a CycloneDX SBOM with Syft:
