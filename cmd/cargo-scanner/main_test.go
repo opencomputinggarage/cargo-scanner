@@ -56,6 +56,46 @@ func TestNormalizeScanArgsAllowsShortFlagsAfterTarget(t *testing.T) {
 	}
 }
 
+func TestScanWizardOptionsSBOMArgs(t *testing.T) {
+	args := scanWizardOptions{
+		Target:     "~/Downloads",
+		Recursive:  true,
+		Scanner:    "syft",
+		Runtime:    "auto",
+		Format:     "text",
+		SBOMOutput: "sbom.cdx.json",
+	}.sbomArgs()
+	want := []string{"--scanner", "syft", "--runtime", "auto", "--format", "text", "--recursive", "--sbom-output", "sbom.cdx.json", expandHome("~/Downloads")}
+	if len(args) != len(want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+	for i := range want {
+		if args[i] != want[i] {
+			t.Fatalf("args = %#v, want %#v", args, want)
+		}
+	}
+}
+
+func TestScanWizardOptionsVulnerabilityArgs(t *testing.T) {
+	args := scanWizardOptions{
+		Target:  ".",
+		Scanner: "trivy",
+		Runtime: "auto",
+		Format:  "sarif",
+		FailOn:  "high",
+		Output:  "results.sarif",
+	}.args()
+	want := []string{"--scanner", "trivy", "--runtime", "auto", "--format", "sarif", "--fail-on", "high", "--output", "results.sarif", "."}
+	if len(args) != len(want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+	for i := range want {
+		if args[i] != want[i] {
+			t.Fatalf("args = %#v, want %#v", args, want)
+		}
+	}
+}
+
 func TestRunVersion(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"version"}, &stdout, &stderr)

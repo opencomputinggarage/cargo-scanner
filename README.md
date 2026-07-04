@@ -30,7 +30,9 @@ cargo-scanner ./artifact.jar -F high
 
 Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
 without a target starts a short conversation that asks only the questions
-needed for that scan: target, recursive mode for folders, scanner, and output.
+needed for that scan: target, recursive mode for folders, result type, and
+output. Grype and Trivy ask vulnerability-focused questions such as fail
+threshold and report format. Syft switches to SBOM-focused questions.
 The target step defaults to the current folder and only offers direct path
 entry when you want to scan somewhere else.
 
@@ -97,7 +99,9 @@ cargo-scanner scan
 ```
 
 The first wizard step scans the current folder by default. Choose `Enter
-another path` only when you want to type a file or folder path.
+another path` only when you want to type a file or folder path. After choosing
+the result type, the wizard asks different follow-up questions for
+vulnerability scans and SBOM generation.
 
 Scan one artifact:
 

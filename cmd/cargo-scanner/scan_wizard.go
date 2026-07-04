@@ -12,13 +12,14 @@ import (
 )
 
 type scanWizardOptions struct {
-	Target    string
-	Recursive bool
-	Scanner   string
-	Runtime   string
-	Format    string
-	FailOn    string
-	Output    string
+	Target     string
+	Recursive  bool
+	Scanner    string
+	Runtime    string
+	Format     string
+	FailOn     string
+	Output     string
+	SBOMOutput string
 }
 
 func shouldRunScanWizard(stdout, stderr io.Writer) bool {
@@ -106,14 +107,37 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 
 	if err := runScanWizardStep(
 		huh.NewSelect[string]().
-			Title("Which scanner should be used?").
-			Description("Grype is the default vulnerability scanner. Syft is best for SBOM inventory.").
+			Title("What kind of result do you need?").
+			Description("Vulnerability scanners produce findings. Syft produces a CycloneDX SBOM.").
 			Options(
 				huh.NewOption("Grype - vulnerabilities", "grype"),
 				huh.NewOption("Trivy - vulnerabilities", "trivy"),
-				huh.NewOption("Syft - package inventory", "syft"),
+				huh.NewOption("Syft - SBOM inventory", "syft"),
 			).
 			Value(&opts.Scanner),
+	); err != nil {
+		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+		return 2
+	}
+
+	if opts.Scanner == "syft" {
+		return runSBOMWizard(ctx, opts, stdout, stderr)
+	}
+	return runVulnerabilityWizard(ctx, opts, stdout, stderr)
+}
+
+func runVulnerabilityWizard(ctx context.Context, opts scanWizardOptions, stdout, stderr io.Writer) int {
+	if err := runScanWizardStep(
+		huh.NewSelect[string]().
+			Title("Should the scan fail on severity?").
+			Description("Useful for CI or release checks. You can leave this disabled for local review.").
+			Options(
+				huh.NewOption("Do not fail automatically", ""),
+				huh.NewOption("Fail on high or critical", "high"),
+				huh.NewOption("Fail on critical only", "critical"),
+				huh.NewOption("Fail on medium or higher", "medium"),
+			).
+			Value(&opts.FailOn),
 	); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 		return 2
@@ -157,6 +181,68 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	return runScan(ctx, args, stdout, stderr)
 }
 
+func runSBOMWizard(ctx context.Context, opts scanWizardOptions, stdout, stderr io.Writer) int {
+	outputChoice := "print"
+	if err := runScanWizardStep(
+		huh.NewSelect[string]().
+			Title("How should the SBOM be produced?").
+			Description("Syft creates package inventory. Use JSON report only when automation needs Cargo Scanner metadata.").
+			Options(
+				huh.NewOption("Print CycloneDX SBOM here", "print"),
+				huh.NewOption("Save CycloneDX SBOM file", "sbom"),
+				huh.NewOption("Save normalized JSON report", "json"),
+			).
+			Value(&outputChoice),
+	); err != nil {
+		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+		return 2
+	}
+
+	switch outputChoice {
+	case "sbom":
+		opts.SBOMOutput = "sbom.cdx.json"
+		if err := runScanWizardStep(
+			huh.NewInput().
+				Title("Where should the SBOM be saved?").
+				Description("This writes the raw CycloneDX JSON document.").
+				Value(&opts.SBOMOutput).
+				Validate(func(value string) error {
+					if strings.TrimSpace(value) == "" {
+						return fmt.Errorf("SBOM file is required")
+					}
+					return nil
+				}),
+		); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+			return 2
+		}
+	case "json":
+		opts.Format = "json"
+		opts.Output = defaultReportPath("json")
+		if err := runScanWizardStep(
+			huh.NewInput().
+				Title("Where should the normalized report be saved?").
+				Description("This writes Cargo Scanner metadata around the SBOM operation.").
+				Value(&opts.Output).
+				Validate(func(value string) error {
+					if strings.TrimSpace(value) == "" {
+						return fmt.Errorf("report file is required")
+					}
+					return nil
+				}),
+		); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+			return 2
+		}
+	default:
+		opts.Format = "text"
+	}
+
+	args := opts.sbomArgs()
+	_, _ = fmt.Fprintf(stderr, "\n%s %s\n\n", ui.Section("Running"), ui.Code("cargo-scanner sbom "+strings.Join(shellQuoteArgs(args), " ")))
+	return runSBOM(ctx, args, stdout, stderr)
+}
+
 func runScanWizardStep(field huh.Field) error {
 	return field.
 		WithTheme(huh.ThemeCharm()).
@@ -189,6 +275,24 @@ func (o scanWizardOptions) args() []string {
 	}
 	if strings.TrimSpace(o.Output) != "" {
 		args = append(args, "--output", strings.TrimSpace(o.Output))
+	}
+	return append(args, expandHome(strings.TrimSpace(o.Target)))
+}
+
+func (o scanWizardOptions) sbomArgs() []string {
+	args := []string{
+		"--scanner", o.Scanner,
+		"--runtime", o.Runtime,
+		"--format", o.Format,
+	}
+	if o.Recursive {
+		args = append(args, "--recursive")
+	}
+	if strings.TrimSpace(o.Output) != "" {
+		args = append(args, "--output", strings.TrimSpace(o.Output))
+	}
+	if strings.TrimSpace(o.SBOMOutput) != "" {
+		args = append(args, "--sbom-output", strings.TrimSpace(o.SBOMOutput))
 	}
 	return append(args, expandHome(strings.TrimSpace(o.Target)))
 }

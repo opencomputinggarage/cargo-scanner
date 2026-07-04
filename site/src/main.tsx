@@ -140,6 +140,11 @@ Recursive scan uses -R / --recursive.
 > Yes, scan files inside this folder
   No, folder only
 
+What kind of result do you need?
+> Grype - vulnerabilities
+  Trivy - vulnerabilities
+  Syft - SBOM inventory
+
 $ cargo-scanner
 ╭────────────────────────────────────────╮
 │ Cargo Scanner   workspace safety       │
@@ -197,7 +202,7 @@ $ cargo-scanner
         <article>
           <Monitor size={28} />
           <h3>Use The TUI</h3>
-          <p>Start with a short conversation, then use direct commands when ready.</p>
+          <p>Start with a scanner-aware conversation, then use direct commands when ready.</p>
           <code>cargo-scanner scan</code>
         </article>
       </section>
