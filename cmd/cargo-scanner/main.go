@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 )
 
 var version = "dev"
@@ -36,7 +37,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "cache":
 		return runCache(ctx, args[1:], stdout, stderr)
 	case "version":
-		_, _ = fmt.Fprintf(stdout, "cargo-scanner %s\n", version)
+		_, _ = fmt.Fprintf(stdout, "cargo-scanner %s\n", displayVersion())
 		return 0
 	case "-h", "--help", "help":
 		usage(stdout)
@@ -46,6 +47,20 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		usage(stderr)
 		return 2
 	}
+}
+
+func displayVersion() string {
+	if version != "" && version != "dev" {
+		return version
+	}
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return version
+	}
+	if info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return version
 }
 
 func usage(w io.Writer) {
