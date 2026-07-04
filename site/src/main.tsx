@@ -102,10 +102,16 @@ function App() {
               <span></span>
             </div>
             <pre>{`$ cargo-scanner scan
-? What should be scanned? Downloads folder
-? How should this folder be scanned? Recursive scan (-R)
-? Which scanner should be used? Grype
-? How should results be shown? Show readable report here
+What should be scanned?
+* 1) Downloads folder (~/Downloads)
+  2) Current folder (.)
+  3) Enter another path
+Select [1]:
+
+How should this folder be scanned?
+* 1) Recursive scan (-R): scan files inside this folder
+  2) Folder only: do not walk into files
+Select [1]:
 
 $ cargo-scanner
 ╭────────────────────────────────────────╮
