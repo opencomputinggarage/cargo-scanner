@@ -30,7 +30,7 @@ cargo-scanner ./artifact.jar -F high
 
 Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
 without a target starts a short conversation that asks only the questions
-needed for that scan.
+needed for that scan: target, recursive mode for folders, scanner, and output.
 
 ## Install
 

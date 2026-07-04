@@ -102,8 +102,9 @@ function App() {
               <span></span>
             </div>
             <pre>{`$ cargo-scanner scan
-? What should be scanned? ~/Downloads
-? Include files inside folders? Yes
+? What should be scanned? Downloads folder
+? How should this folder be scanned? Recursive scan (-R)
+? Which scanner should be used? Grype
 ? How should results be shown? Show readable report here
 
 $ cargo-scanner

@@ -26,6 +26,11 @@ func shouldRunScanWizard(stdout, stderr io.Writer) bool {
 }
 
 func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
+	downloads := defaultDownloadsPath()
+	targetChoice := "current"
+	if downloads != "" {
+		targetChoice = "downloads"
+	}
 	opts := scanWizardOptions{
 		Target:  ".",
 		Scanner: "grype",
@@ -38,25 +43,51 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	_, _ = fmt.Fprintln(stderr, ui.Muted("I will ask only what is needed, then start the scan."))
 	_, _ = fmt.Fprintln(stderr)
 
+	targetOptions := []huh.Option[string]{
+		huh.NewOption("Current folder (.)", "current"),
+	}
+	if downloads != "" {
+		targetOptions = append([]huh.Option[string]{
+			huh.NewOption("Downloads folder ("+displayScanPath(downloads)+")", "downloads"),
+		}, targetOptions...)
+	}
+	targetOptions = append(targetOptions, huh.NewOption("Enter another path", "custom"))
+
 	if err := runScanWizardStep(stderr,
-		huh.NewInput().
+		huh.NewSelect[string]().
 			Title("What should be scanned?").
-			Description("A file or folder path.").
-			Placeholder("~/Downloads").
-			Value(&opts.Target).
-			Validate(func(value string) error {
-				value = strings.TrimSpace(value)
-				if value == "" {
-					return fmt.Errorf("target path is required")
-				}
-				if _, err := os.Stat(expandHome(value)); err != nil {
-					return err
-				}
-				return nil
-			}),
+			Description("Choose a common target or enter a path.").
+			Options(targetOptions...).
+			Value(&targetChoice),
 	); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 		return 2
+	}
+	switch targetChoice {
+	case "downloads":
+		opts.Target = downloads
+	case "current":
+		opts.Target = "."
+	case "custom":
+		if err := runScanWizardStep(stderr,
+			huh.NewInput().
+				Title("Enter the file or folder path").
+				Placeholder("~/Downloads").
+				Value(&opts.Target).
+				Validate(func(value string) error {
+					value = strings.TrimSpace(value)
+					if value == "" {
+						return fmt.Errorf("target path is required")
+					}
+					if _, err := os.Stat(expandHome(value)); err != nil {
+						return err
+					}
+					return nil
+				}),
+		); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+			return 2
+		}
 	}
 
 	targetInfo, err := os.Stat(expandHome(strings.TrimSpace(opts.Target)))
@@ -65,19 +96,21 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 		return 1
 	}
 	if targetInfo.IsDir() {
-		opts.Recursive = true
 		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("Folder detected"), ui.Muted("Recursive scan uses -R / --recursive."))
+		recursiveChoice := "recursive"
 		if err := runScanWizardStep(stderr,
-			huh.NewConfirm().
-				Title("Scan files inside this folder recursively?").
-				Description("Turns on -R / --recursive. Recommended for Downloads, projects, and extracted archives.").
-				Affirmative("Yes").
-				Negative("No").
-				Value(&opts.Recursive),
+			huh.NewSelect[string]().
+				Title("How should this folder be scanned?").
+				Options(
+					huh.NewOption("Recursive scan (-R): include files inside this folder", "recursive"),
+					huh.NewOption("Folder only: do not walk into files", "single"),
+				).
+				Value(&recursiveChoice),
 		); err != nil {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
+		opts.Recursive = recursiveChoice == "recursive"
 	} else {
 		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("File detected"), ui.Muted("Recursive scan is not needed."))
 	}
@@ -153,6 +186,18 @@ func defaultReportPath(format string) string {
 	default:
 		return ""
 	}
+}
+
+func defaultDownloadsPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	path := home + "/Downloads"
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		return path
+	}
+	return ""
 }
 
 func (o scanWizardOptions) args() []string {
