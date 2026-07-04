@@ -1,15 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/opencomputinggarage/cargo-scanner/internal/ui"
 )
 
@@ -23,17 +21,11 @@ type scanWizardOptions struct {
 	Output    string
 }
 
-type wizardChoice struct {
-	Label string
-	Value string
-}
-
 func shouldRunScanWizard(stdout, stderr io.Writer) bool {
 	return isInteractiveTerminal(stderr) && isInteractiveTerminal(stdout) && isInteractiveTerminal(os.Stdin)
 }
 
 func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
-	reader := bufio.NewReader(os.Stdin)
 	downloads := defaultDownloadsPath()
 	targetChoice := "current"
 	if downloads != "" {
@@ -51,19 +43,24 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	_, _ = fmt.Fprintln(stderr, ui.Muted("I will ask only what is needed, then start the scan."))
 	_, _ = fmt.Fprintln(stderr)
 
-	targetOptions := []wizardChoice{
-		{Label: "Current folder (.)", Value: "current"},
+	targetOptions := []huh.Option[string]{
+		huh.NewOption("Current folder (.)", "current"),
 	}
 	if downloads != "" {
-		targetOptions = append([]wizardChoice{
-			{Label: "Downloads folder (" + displayScanPath(downloads) + ")", Value: "downloads"},
+		targetOptions = append([]huh.Option[string]{
+			huh.NewOption("Downloads folder ("+displayScanPath(downloads)+")", "downloads"),
 		}, targetOptions...)
 	}
-	targetOptions = append(targetOptions, wizardChoice{Label: "Enter another path", Value: "custom"})
+	targetOptions = append(targetOptions, huh.NewOption("Enter another path", "custom"))
 
 	var err error
-	targetChoice, err = askWizardChoice(stderr, reader, "What should be scanned?", "Choose a common target or enter a path.", targetOptions, targetChoice)
-	if err != nil {
+	if err := runScanWizardStep(
+		huh.NewSelect[string]().
+			Title("What should be scanned?").
+			Description("Choose a common target or enter a path.").
+			Options(targetOptions...).
+			Value(&targetChoice),
+	); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 		return 2
 	}
@@ -73,17 +70,23 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	case "current":
 		opts.Target = "."
 	case "custom":
-		opts.Target, err = askWizardInput(stderr, reader, "Enter the file or folder path", "Use an absolute path, relative path, or ~/Downloads.", "~/Downloads", func(value string) error {
-			value = strings.TrimSpace(value)
-			if value == "" {
-				return fmt.Errorf("target path is required")
-			}
-			if _, err := os.Stat(expandHome(value)); err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
+		opts.Target = "~/Downloads"
+		if err := runScanWizardStep(
+			huh.NewInput().
+				Title("Enter the file or folder path").
+				Description("Use an absolute path, relative path, or ~/Downloads.").
+				Value(&opts.Target).
+				Validate(func(value string) error {
+					value = strings.TrimSpace(value)
+					if value == "" {
+						return fmt.Errorf("target path is required")
+					}
+					if _, err := os.Stat(expandHome(value)); err != nil {
+						return err
+					}
+					return nil
+				}),
+		); err != nil {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
@@ -96,49 +99,65 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	}
 	if targetInfo.IsDir() {
 		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("Folder detected"), ui.Muted("Recursive scan uses -R / --recursive."))
-		recursiveChoice := "recursive"
-		recursiveChoice, err = askWizardChoice(stderr, reader, "How should this folder be scanned?", "", []wizardChoice{
-			{Label: "Recursive scan (-R): scan files inside this folder", Value: "recursive"},
-			{Label: "Folder only: do not walk into files", Value: "single"},
-		}, recursiveChoice)
-		if err != nil {
+		opts.Recursive = true
+		if err := runScanWizardStep(
+			huh.NewConfirm().
+				Title("Scan recursively?").
+				Description("Recursive scan uses -R / --recursive and scans files inside this folder.").
+				Affirmative("Yes, scan files inside this folder").
+				Negative("No, folder only").
+				Value(&opts.Recursive),
+		); err != nil {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
-		opts.Recursive = recursiveChoice == "recursive"
 	} else {
 		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("File detected"), ui.Muted("Recursive scan is not needed."))
 	}
 
-	opts.Scanner, err = askWizardChoice(stderr, reader, "Which scanner should be used?", "Grype is the default vulnerability scanner. Syft is best for SBOM inventory.", []wizardChoice{
-		{Label: "Grype - vulnerabilities", Value: "grype"},
-		{Label: "Trivy - vulnerabilities", Value: "trivy"},
-		{Label: "Syft - package inventory", Value: "syft"},
-	}, opts.Scanner)
-	if err != nil {
+	if err := runScanWizardStep(
+		huh.NewSelect[string]().
+			Title("Which scanner should be used?").
+			Description("Grype is the default vulnerability scanner. Syft is best for SBOM inventory.").
+			Options(
+				huh.NewOption("Grype - vulnerabilities", "grype"),
+				huh.NewOption("Trivy - vulnerabilities", "trivy"),
+				huh.NewOption("Syft - package inventory", "syft"),
+			).
+			Value(&opts.Scanner),
+	); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 		return 2
 	}
 
-	opts.Format, err = askWizardChoice(stderr, reader, "How should results be shown?", "", []wizardChoice{
-		{Label: "Show readable report here", Value: "text"},
-		{Label: "Save JSON report", Value: "json"},
-		{Label: "Save SARIF report", Value: "sarif"},
-	}, opts.Format)
-	if err != nil {
+	if err := runScanWizardStep(
+		huh.NewSelect[string]().
+			Title("How should results be shown?").
+			Options(
+				huh.NewOption("Show readable report here", "text"),
+				huh.NewOption("Save JSON report", "json"),
+				huh.NewOption("Save SARIF report", "sarif"),
+			).
+			Value(&opts.Format),
+	); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 		return 2
 	}
 
 	if opts.Format != "text" {
 		opts.Output = defaultReportPath(opts.Format)
-		opts.Output, err = askWizardInput(stderr, reader, "Where should the report be saved?", "Press Enter to use the suggested file name.", opts.Output, func(value string) error {
-			if strings.TrimSpace(value) == "" {
-				return fmt.Errorf("report file is required")
-			}
-			return nil
-		})
-		if err != nil {
+		if err := runScanWizardStep(
+			huh.NewInput().
+				Title("Where should the report be saved?").
+				Description("Press Enter to use the suggested file name.").
+				Value(&opts.Output).
+				Validate(func(value string) error {
+					if strings.TrimSpace(value) == "" {
+						return fmt.Errorf("report file is required")
+					}
+					return nil
+				}),
+		); err != nil {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
@@ -149,88 +168,11 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	return runScan(ctx, args, stdout, stderr)
 }
 
-func askWizardChoice(stderr io.Writer, reader *bufio.Reader, title, description string, choices []wizardChoice, defaultValue string) (string, error) {
-	if len(choices) == 0 {
-		return "", fmt.Errorf("no choices available")
-	}
-	defaultIndex := 0
-	for i, choice := range choices {
-		if choice.Value == defaultValue {
-			defaultIndex = i
-			break
-		}
-	}
-	for {
-		_, _ = fmt.Fprintln(stderr, ui.Section(title))
-		if strings.TrimSpace(description) != "" {
-			_, _ = fmt.Fprintln(stderr, ui.Muted(description))
-		}
-		for i, choice := range choices {
-			marker := " "
-			if i == defaultIndex {
-				marker = "*"
-			}
-			_, _ = fmt.Fprintf(stderr, "%s %d) %s\n", marker, i+1, choice.Label)
-		}
-		_, _ = fmt.Fprintf(stderr, "Select [%d]: ", defaultIndex+1)
-		line, err := readWizardLine(reader)
-		if err != nil {
-			return "", err
-		}
-		selection := strings.TrimSpace(line)
-		if selection == "" {
-			_, _ = fmt.Fprintln(stderr)
-			return choices[defaultIndex].Value, nil
-		}
-		index, err := strconv.Atoi(selection)
-		if err != nil || index < 1 || index > len(choices) {
-			_, _ = fmt.Fprintf(stderr, "%s Choose a number from 1 to %d.\n\n", ui.Status("error"), len(choices))
-			continue
-		}
-		_, _ = fmt.Fprintln(stderr)
-		return choices[index-1].Value, nil
-	}
-}
-
-func askWizardInput(stderr io.Writer, reader *bufio.Reader, title, description, defaultValue string, validate func(string) error) (string, error) {
-	for {
-		_, _ = fmt.Fprintln(stderr, ui.Section(title))
-		if strings.TrimSpace(description) != "" {
-			_, _ = fmt.Fprintln(stderr, ui.Muted(description))
-		}
-		if defaultValue != "" {
-			_, _ = fmt.Fprintf(stderr, "> [%s]: ", defaultValue)
-		} else {
-			_, _ = fmt.Fprint(stderr, "> ")
-		}
-		line, err := readWizardLine(reader)
-		if err != nil {
-			return "", err
-		}
-		value := strings.TrimSpace(line)
-		if value == "" {
-			value = defaultValue
-		}
-		if validate != nil {
-			if err := validate(value); err != nil {
-				_, _ = fmt.Fprintf(stderr, "%s %v\n\n", ui.Status("error"), err)
-				continue
-			}
-		}
-		_, _ = fmt.Fprintln(stderr)
-		return value, nil
-	}
-}
-
-func readWizardLine(reader *bufio.Reader) (string, error) {
-	line, err := reader.ReadString('\n')
-	if err == nil {
-		return line, nil
-	}
-	if errors.Is(err, io.EOF) && line != "" {
-		return line, nil
-	}
-	return "", err
+func runScanWizardStep(field huh.Field) error {
+	return field.
+		WithTheme(huh.ThemeCharm()).
+		WithWidth(72).
+		Run()
 }
 
 func defaultReportPath(format string) string {

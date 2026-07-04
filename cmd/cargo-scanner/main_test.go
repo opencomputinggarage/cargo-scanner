@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -161,54 +159,6 @@ func TestRunScanMissingTarget(t *testing.T) {
 	}
 	if !bytes.Contains(stderr.Bytes(), []byte("example:")) {
 		t.Fatalf("expected example hint, got %s", stderr.String())
-	}
-}
-
-func TestAskWizardChoiceUsesDefaultOnEnter(t *testing.T) {
-	var stderr bytes.Buffer
-	got, err := askWizardChoice(&stderr, bufio.NewReader(strings.NewReader("\n")), "Scanner", "", []wizardChoice{
-		{Label: "Grype", Value: "grype"},
-		{Label: "Trivy", Value: "trivy"},
-	}, "trivy")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "trivy" {
-		t.Fatalf("choice = %q, want trivy", got)
-	}
-	if !bytes.Contains(stderr.Bytes(), []byte("Select [2]:")) {
-		t.Fatalf("expected default prompt, got %s", stderr.String())
-	}
-}
-
-func TestAskWizardChoiceRepromptsInvalidSelection(t *testing.T) {
-	var stderr bytes.Buffer
-	got, err := askWizardChoice(&stderr, bufio.NewReader(strings.NewReader("9\n1\n")), "Scanner", "", []wizardChoice{
-		{Label: "Grype", Value: "grype"},
-		{Label: "Trivy", Value: "trivy"},
-	}, "grype")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "grype" {
-		t.Fatalf("choice = %q, want grype", got)
-	}
-	if !bytes.Contains(stderr.Bytes(), []byte("Choose a number from 1 to 2.")) {
-		t.Fatalf("expected invalid selection hint, got %s", stderr.String())
-	}
-}
-
-func TestAskWizardInputUsesDefaultOnEnter(t *testing.T) {
-	var stderr bytes.Buffer
-	got, err := askWizardInput(&stderr, bufio.NewReader(strings.NewReader("\n")), "Output", "", "report.json", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "report.json" {
-		t.Fatalf("input = %q, want report.json", got)
-	}
-	if !bytes.Contains(stderr.Bytes(), []byte("> [report.json]:")) {
-		t.Fatalf("expected default input prompt, got %s", stderr.String())
 	}
 }
 

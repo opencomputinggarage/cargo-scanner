@@ -103,15 +103,15 @@ function App() {
             </div>
             <pre>{`$ cargo-scanner scan
 What should be scanned?
-* 1) Downloads folder (~/Downloads)
-  2) Current folder (.)
-  3) Enter another path
-Select [1]:
+Choose a common target or enter a path.
+> Downloads folder (~/Downloads)
+  Current folder (.)
+  Enter another path
 
-How should this folder be scanned?
-* 1) Recursive scan (-R): scan files inside this folder
-  2) Folder only: do not walk into files
-Select [1]:
+Scan recursively?
+Recursive scan uses -R / --recursive.
+> Yes, scan files inside this folder
+  No, folder only
 
 $ cargo-scanner
 ╭────────────────────────────────────────╮
