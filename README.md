@@ -304,6 +304,10 @@ pnpm dev
 pnpm build
 ```
 
+When changing user-facing commands, options, TUI flows, installer behavior, or
+update behavior, update the docs in the same change. See
+[docs/documentation.md](docs/documentation.md).
+
 ## Troubleshooting
 
 Check the environment:
