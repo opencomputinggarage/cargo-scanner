@@ -24,7 +24,7 @@ const commands = [
   },
   {
     label: "Direct scan",
-    value: "cargo-scanner ~/Downloads --recursive\ncargo-scanner ./artifact.jar --fail-on high",
+    value: "cargo-scanner ~/Downloads -R\ncargo-scanner ./artifact.jar -F high",
   },
   {
     label: "Update",

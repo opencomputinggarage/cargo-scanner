@@ -39,10 +39,25 @@ cargo-scanner scan ~/Downloads --recursive
 Common options:
 
 ```sh
-cargo-scanner ./artifact.jar --scanner grype
-cargo-scanner ./artifact.jar --fail-on high
-cargo-scanner ./downloads --recursive --include "*.jar,*.zip" --exclude "*.tmp"
+cargo-scanner ./artifact.jar -s grype
+cargo-scanner ./artifact.jar -F high
+cargo-scanner ./downloads -R -i "*.jar,*.zip" -x "*.tmp"
 ```
+
+Short scan options:
+
+| Short | Long | Meaning |
+| --- | --- | --- |
+| `-s` | `--scanner` | `grype`, `trivy`, or `syft` |
+| `-u` | `--runtime` | `auto`, `managed`, `docker`, or `native` |
+| `-f` | `--format` | `text`, `json`, or `sarif` |
+| `-j` | `--json` | Write JSON output |
+| `-o` | `--output` | Write report to file |
+| `-R` | `--recursive` | Scan files inside a directory |
+| `-F` | `--fail-on` | Exit non-zero at severity |
+| `-i` | `--include` | Include glob |
+| `-x` | `--exclude` | Exclude glob |
+| `-t` | `--timeout` | Scan timeout |
 
 Live progress UI:
 

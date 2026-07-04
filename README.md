@@ -24,8 +24,8 @@ cargo-scanner scan
 Prefer direct commands:
 
 ```sh
-cargo-scanner ~/Downloads --recursive
-cargo-scanner ./artifact.jar --fail-on high
+cargo-scanner ~/Downloads -R
+cargo-scanner ./artifact.jar -F high
 ```
 
 Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
@@ -104,7 +104,7 @@ cargo-scanner scan ./download.jar
 Scan a directory recursively:
 
 ```sh
-cargo-scanner ~/Downloads --recursive
+cargo-scanner ~/Downloads -R
 ```
 
 Fail when high or critical findings exist:
@@ -116,14 +116,14 @@ cargo-scanner ./artifact.tgz --fail-on high
 Use a specific scanner:
 
 ```sh
-cargo-scanner ./artifact.jar --scanner trivy
-cargo-scanner ./artifact.jar --scanner grype
+cargo-scanner ./artifact.jar -s trivy
+cargo-scanner ./artifact.jar -s grype
 ```
 
 Write a JSON report:
 
 ```sh
-cargo-scanner ./artifact.jar --json --output report.json
+cargo-scanner ./artifact.jar -j -o report.json
 ```
 
 Write SARIF for GitHub code scanning:

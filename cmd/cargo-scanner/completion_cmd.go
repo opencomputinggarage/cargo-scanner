@@ -38,7 +38,7 @@ func writeBashCompletion(w io.Writer) {
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   commands="init scan sbom doctor tui runtime tools cache update completion version help"
-  scan_opts="--scanner --config --runtime --docker-image --format --json --output --raw-output --sbom-output --recursive --include --exclude --fail-on --timeout"
+  scan_opts="-s --scanner --config -u --runtime --docker-image -f --format -j --json -o --output --raw-output -b --sbom-output -R --recursive -i --include -x --exclude -F --fail-on -t --timeout"
   tools_cmds="path list doctor install update update-db uninstall"
   runtime_cmds="pull"
   cache_cmds="path clean"
@@ -88,8 +88,15 @@ func writeFishCompletion(w io.Writer) {
 		_, _ = fmt.Fprintf(w, "complete -c cargo-scanner -f -n '__fish_use_subcommand' -a %s\n", cmd)
 	}
 	_, _ = fmt.Fprint(w, `complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -l scanner -x -a 'grype trivy syft'
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s s -x -a 'grype trivy syft'
 complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -l runtime -x -a 'auto managed docker native'
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s u -x -a 'auto managed docker native'
 complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -l format -x -a 'text json sarif'
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s f -x -a 'text json sarif'
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s R
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s j
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s o -x
+complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s F -x -a 'critical high medium low'
 complete -c cargo-scanner -n '__fish_seen_subcommand_from doctor' -l fix
 complete -c cargo-scanner -n '__fish_seen_subcommand_from update' -l check
 complete -c cargo-scanner -n '__fish_seen_subcommand_from update' -l force

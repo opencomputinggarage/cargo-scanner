@@ -161,19 +161,19 @@ Usage:
   cargo-scanner sbom <path>        Generate an SBOM
 
 Common examples:
-  cargo-scanner ~/Downloads --recursive
-  cargo-scanner ./artifact.jar --fail-on high
-  cargo-scanner ./artifact.jar --json --output report.json
+  cargo-scanner ~/Downloads -R
+  cargo-scanner ./artifact.jar -F high
+  cargo-scanner ./artifact.jar -j -o report.json
   cargo-scanner tools list
 
 Scan options:
-  --scanner grype        Scanner to use: grype, trivy, syft
-  --runtime auto         Runtime to use: auto, docker, managed, native
-  --format text          Output format: text, json, sarif
-  --json                 Write normalized JSON
-  --output path          Write normalized report to file
-  --recursive            Scan files under a directory
-  --fail-on high         Exit 1 when max severity meets threshold
+  -s, --scanner grype    Scanner to use: grype, trivy, syft
+  -u, --runtime auto     Runtime to use: auto, docker, managed, native
+  -f, --format text      Output format: text, json, sarif
+  -j, --json             Write normalized JSON
+  -o, --output path      Write normalized report to file
+  -R, --recursive        Scan files under a directory
+  -F, --fail-on high     Exit 1 when max severity meets threshold
   --tui=false            Disable terminal scan progress UI
 
 More:

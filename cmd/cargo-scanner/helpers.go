@@ -83,28 +83,39 @@ func scannerByName(name string) (core.Scanner, error) {
 func normalizeScanArgs(args []string) ([]string, error) {
 	valueFlags := map[string]bool{
 		"--scanner":      true,
+		"-s":             true,
 		"--config":       true,
 		"--runtime":      true,
+		"-u":             true,
 		"--docker-image": true,
 		"--format":       true,
+		"-f":             true,
 		"--output":       true,
+		"-o":             true,
 		"--raw-output":   true,
 		"--sbom-output":  true,
+		"-b":             true,
 		"--fail-on":      true,
+		"-F":             true,
 		"--timeout":      true,
+		"-t":             true,
 		"--include":      true,
+		"-i":             true,
 		"--exclude":      true,
+		"-x":             true,
 	}
 	boolFlags := map[string]bool{
 		"--json":      true,
+		"-j":          true,
 		"--recursive": true,
+		"-R":          true,
 		"--tui":       true,
 	}
 	var flags []string
 	var positionals []string
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		if strings.HasPrefix(arg, "--") {
+		if strings.HasPrefix(arg, "-") && arg != "-" {
 			name := arg
 			if before, _, ok := strings.Cut(arg, "="); ok {
 				name = before

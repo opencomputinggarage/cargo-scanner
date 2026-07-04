@@ -66,10 +66,11 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	}
 	if targetInfo.IsDir() {
 		opts.Recursive = true
+		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("Folder detected"), ui.Muted("Recursive scan uses -R / --recursive."))
 		if err := runScanWizardStep(stderr,
 			huh.NewConfirm().
-				Title("Include files inside this folder?").
-				Description("Recommended for Downloads, projects, and extracted archives.").
+				Title("Scan files inside this folder recursively?").
+				Description("Turns on -R / --recursive. Recommended for Downloads, projects, and extracted archives.").
 				Affirmative("Yes").
 				Negative("No").
 				Value(&opts.Recursive),
@@ -77,6 +78,23 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
+	} else {
+		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("File detected"), ui.Muted("Recursive scan is not needed."))
+	}
+
+	if err := runScanWizardStep(stderr,
+		huh.NewSelect[string]().
+			Title("Which scanner should be used?").
+			Description("Grype is the default vulnerability scanner. Syft is best for SBOM inventory.").
+			Options(
+				huh.NewOption("Grype - vulnerabilities", "grype"),
+				huh.NewOption("Trivy - vulnerabilities", "trivy"),
+				huh.NewOption("Syft - package inventory", "syft"),
+			).
+			Value(&opts.Scanner),
+	); err != nil {
+		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+		return 2
 	}
 
 	if err := runScanWizardStep(stderr,

@@ -40,6 +40,22 @@ func TestNormalizeScanArgsAllowsTUIFlagAfterTarget(t *testing.T) {
 	}
 }
 
+func TestNormalizeScanArgsAllowsShortFlagsAfterTarget(t *testing.T) {
+	args, err := normalizeScanArgs([]string{"README.md", "-R", "-s", "trivy", "-f=json", "-o", "report.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"-R", "-s", "trivy", "-f=json", "-o", "report.json", "README.md"}
+	if len(args) != len(want) {
+		t.Fatalf("args = %#v, want %#v", args, want)
+	}
+	for i := range want {
+		if args[i] != want[i] {
+			t.Fatalf("args = %#v, want %#v", args, want)
+		}
+	}
+}
+
 func TestRunVersion(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"version"}, &stdout, &stderr)
