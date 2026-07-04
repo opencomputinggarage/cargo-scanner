@@ -104,8 +104,7 @@ function App() {
             <pre>{`$ cargo-scanner scan
 What should be scanned?
 Choose a common target or enter a path.
-> Downloads folder (~/Downloads)
-  Current folder (.)
+> Current folder (.)
   Enter another path
 
 Scan recursively?
@@ -119,7 +118,7 @@ $ cargo-scanner
 │ Managed tools 3/3 ready                │
 │                                        │
 │ > Scan Something                       │
-│   Scan Downloads                       │
+│   Scan Current Folder                  │
 │   Fix Setup                            │
 ╰────────────────────────────────────────╯
 `}</pre>

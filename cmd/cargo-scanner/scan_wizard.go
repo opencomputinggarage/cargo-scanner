@@ -26,11 +26,7 @@ func shouldRunScanWizard(stdout, stderr io.Writer) bool {
 }
 
 func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
-	downloads := defaultDownloadsPath()
 	targetChoice := "current"
-	if downloads != "" {
-		targetChoice = "downloads"
-	}
 	opts := scanWizardOptions{
 		Target:  ".",
 		Scanner: "grype",
@@ -45,13 +41,8 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 
 	targetOptions := []huh.Option[string]{
 		huh.NewOption("Current folder (.)", "current"),
+		huh.NewOption("Enter another path", "custom"),
 	}
-	if downloads != "" {
-		targetOptions = append([]huh.Option[string]{
-			huh.NewOption("Downloads folder ("+displayScanPath(downloads)+")", "downloads"),
-		}, targetOptions...)
-	}
-	targetOptions = append(targetOptions, huh.NewOption("Enter another path", "custom"))
 
 	var err error
 	if err := runScanWizardStep(
@@ -65,8 +56,6 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 		return 2
 	}
 	switch targetChoice {
-	case "downloads":
-		opts.Target = downloads
 	case "current":
 		opts.Target = "."
 	case "custom":
@@ -184,18 +173,6 @@ func defaultReportPath(format string) string {
 	default:
 		return ""
 	}
-}
-
-func defaultDownloadsPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	path := home + "/Downloads"
-	if info, err := os.Stat(path); err == nil && info.IsDir() {
-		return path
-	}
-	return ""
 }
 
 func (o scanWizardOptions) args() []string {

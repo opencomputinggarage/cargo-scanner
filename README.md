@@ -31,6 +31,8 @@ cargo-scanner ./artifact.jar -F high
 Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
 without a target starts a short conversation that asks only the questions
 needed for that scan: target, recursive mode for folders, scanner, and output.
+The target step defaults to the current folder and only offers direct path
+entry when you want to scan somewhere else.
 
 ## Install
 
@@ -93,6 +95,9 @@ Start with the conversational scan:
 ```sh
 cargo-scanner scan
 ```
+
+The first wizard step scans the current folder by default. Choose `Enter
+another path` only when you want to type a file or folder path.
 
 Scan one artifact:
 

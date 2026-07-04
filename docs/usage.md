@@ -13,7 +13,8 @@ cargo-scanner scan
 `doctor --fix` installs missing managed scanner tools and pulls the default
 Docker runtime image when Docker is available. `cargo-scanner scan` starts a
 short conversation and only asks questions needed for that scan: target,
-recursive mode for folders, scanner, and output.
+recursive mode for folders, scanner, and output. The target question defaults
+to the current folder and only offers direct path entry for other locations.
 
 ## Scanning
 
@@ -22,6 +23,9 @@ Conversational scan:
 ```sh
 cargo-scanner scan
 ```
+
+The wizard starts with `Current folder (.)` selected. Choose `Enter another
+path` to type a different file or folder path.
 
 The short form scans directly:
 
