@@ -33,72 +33,108 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 		Format:  "text",
 		FailOn:  "",
 	}
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewNote().
-				Title("Cargo Scanner").
-				Description("Choose what to scan. Cargo Scanner will use safe defaults."),
-			huh.NewInput().
-				Title("What should be scanned?").
-				Description("A file or folder path. Examples: ~/Downloads, ./artifact.jar").
-				Placeholder("~/Downloads").
-				Value(&opts.Target).
-				Validate(func(value string) error {
-					value = strings.TrimSpace(value)
-					if value == "" {
-						return fmt.Errorf("target path is required")
-					}
-					if _, err := os.Stat(expandHome(value)); err != nil {
-						return err
-					}
-					return nil
-				}),
-			huh.NewConfirm().
-				Title("Include files inside folders?").
-				Description("Use this for Downloads, extracted archives, and project folders.").
-				Value(&opts.Recursive),
-			huh.NewSelect[string]().
-				Title("Output").
-				Options(
-					huh.NewOption("Show a readable report", "text"),
-					huh.NewOption("Save JSON report", "json"),
-					huh.NewOption("Save SARIF report", "sarif"),
-				).
-				Value(&opts.Format),
-			huh.NewInput().
-				Title("Report file").
-				Description("Optional for text. Required if you selected JSON or SARIF.").
-				Placeholder("report.json").
-				Value(&opts.Output).
-				Validate(func(value string) error {
-					if opts.Format != "text" && strings.TrimSpace(value) == "" {
-						return fmt.Errorf("report file is required for %s output", opts.Format)
-					}
-					return nil
-				}),
-			huh.NewConfirm().
-				Title("Start scan now?").
-				Affirmative("Start").
-				Negative("Cancel").
-				Validate(func(confirmed bool) error {
-					if !confirmed {
-						return fmt.Errorf("scan cancelled")
-					}
-					return nil
-				}),
-		),
-	).
-		WithTheme(huh.ThemeCharm()).
-		WithWidth(78).
-		WithInput(os.Stdin).
-		WithOutput(stderr)
-	if err := form.Run(); err != nil {
+
+	_, _ = fmt.Fprintln(stderr, ui.Title("Cargo Scanner"))
+	_, _ = fmt.Fprintln(stderr, ui.Muted("I will ask only what is needed, then start the scan."))
+	_, _ = fmt.Fprintln(stderr)
+
+	if err := runScanWizardStep(stderr,
+		huh.NewInput().
+			Title("What should be scanned?").
+			Description("A file or folder path.").
+			Placeholder("~/Downloads").
+			Value(&opts.Target).
+			Validate(func(value string) error {
+				value = strings.TrimSpace(value)
+				if value == "" {
+					return fmt.Errorf("target path is required")
+				}
+				if _, err := os.Stat(expandHome(value)); err != nil {
+					return err
+				}
+				return nil
+			}),
+	); err != nil {
 		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 		return 2
 	}
+
+	targetInfo, err := os.Stat(expandHome(strings.TrimSpace(opts.Target)))
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("error"), err)
+		return 1
+	}
+	if targetInfo.IsDir() {
+		opts.Recursive = true
+		if err := runScanWizardStep(stderr,
+			huh.NewConfirm().
+				Title("Include files inside this folder?").
+				Description("Recommended for Downloads, projects, and extracted archives.").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&opts.Recursive),
+		); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+			return 2
+		}
+	}
+
+	if err := runScanWizardStep(stderr,
+		huh.NewSelect[string]().
+			Title("How should results be shown?").
+			Options(
+				huh.NewOption("Show readable report here", "text"),
+				huh.NewOption("Save JSON report", "json"),
+				huh.NewOption("Save SARIF report", "sarif"),
+			).
+			Value(&opts.Format),
+	); err != nil {
+		_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+		return 2
+	}
+
+	if opts.Format != "text" {
+		opts.Output = defaultReportPath(opts.Format)
+		if err := runScanWizardStep(stderr,
+			huh.NewInput().
+				Title("Where should the report be saved?").
+				Placeholder(opts.Output).
+				Value(&opts.Output).
+				Validate(func(value string) error {
+					if strings.TrimSpace(value) == "" {
+						return fmt.Errorf("report file is required")
+					}
+					return nil
+				}),
+		); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
+			return 2
+		}
+	}
+
 	args := opts.args()
 	_, _ = fmt.Fprintf(stderr, "\n%s %s\n\n", ui.Section("Running"), ui.Code("cargo-scanner scan "+strings.Join(shellQuoteArgs(args), " ")))
 	return runScan(ctx, args, stdout, stderr)
+}
+
+func runScanWizardStep(stderr io.Writer, field huh.Field) error {
+	return huh.NewForm(huh.NewGroup(field)).
+		WithTheme(huh.ThemeCharm()).
+		WithWidth(72).
+		WithInput(os.Stdin).
+		WithOutput(stderr).
+		Run()
+}
+
+func defaultReportPath(format string) string {
+	switch format {
+	case "sarif":
+		return "cargo-scanner.sarif"
+	case "json":
+		return "cargo-scanner.json"
+	default:
+		return ""
+	}
 }
 
 func (o scanWizardOptions) args() []string {

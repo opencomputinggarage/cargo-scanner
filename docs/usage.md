@@ -11,12 +11,12 @@ cargo-scanner scan
 ```
 
 `doctor --fix` installs missing managed scanner tools and pulls the default
-Docker runtime image when Docker is available. `cargo-scanner scan` opens the
-guided scan wizard in a terminal.
+Docker runtime image when Docker is available. `cargo-scanner scan` starts a
+short conversation and only asks questions needed for that scan.
 
 ## Scanning
 
-Guided scan:
+Conversational scan:
 
 ```sh
 cargo-scanner scan

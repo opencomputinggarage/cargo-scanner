@@ -29,7 +29,8 @@ cargo-scanner ./artifact.jar --fail-on high
 ```
 
 Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
-without a target opens a guided scan wizard.
+without a target starts a short conversation that asks only the questions
+needed for that scan.
 
 ## Install
 
@@ -87,7 +88,7 @@ current action, elapsed time, completed steps, and Docker pull logs.
 
 ## Everyday Scans
 
-Start with the guided scan:
+Start with the conversational scan:
 
 ```sh
 cargo-scanner scan

@@ -104,7 +104,7 @@ function App() {
             <pre>{`$ cargo-scanner scan
 ? What should be scanned? ~/Downloads
 ? Include files inside folders? Yes
-? Output Show a readable report
+? How should results be shown? Show readable report here
 
 $ cargo-scanner
 ╭────────────────────────────────────────╮
@@ -163,7 +163,7 @@ $ cargo-scanner
         <article>
           <Monitor size={28} />
           <h3>Use The TUI</h3>
-          <p>Start with a short guided scan, then use direct commands when ready.</p>
+          <p>Start with a short conversation, then use direct commands when ready.</p>
           <code>cargo-scanner scan</code>
         </article>
       </section>
