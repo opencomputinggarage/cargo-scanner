@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const version = "dev"
+var version = "dev"
 
 func main() {
 	os.Exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
