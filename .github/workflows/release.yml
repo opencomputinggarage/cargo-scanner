@@ -10,6 +10,16 @@ permissions:
   packages: write
 
 jobs:
+  names:
+    runs-on: ubuntu-latest
+    outputs:
+      runtime-image: ${{ steps.names.outputs.runtime-image }}
+    steps:
+      - id: names
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-runtime"
+          echo "runtime-image=$image" >> "$GITHUB_OUTPUT"
+
   goreleaser:
     runs-on: ubuntu-latest
     steps:
@@ -30,6 +40,7 @@ jobs:
 
   runtime-image:
     runs-on: ubuntu-latest
+    needs: names
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
@@ -43,5 +54,5 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}-runtime:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}-runtime:latest
+            ${{ needs.names.outputs.runtime-image }}:${{ github.ref_name }}
+            ${{ needs.names.outputs.runtime-image }}:latest
