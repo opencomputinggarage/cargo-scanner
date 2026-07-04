@@ -169,12 +169,10 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 }
 
 func runScanWizardStep(stderr io.Writer, field huh.Field) error {
-	return huh.NewForm(huh.NewGroup(field)).
+	return field.
 		WithTheme(huh.ThemeCharm()).
 		WithWidth(72).
-		WithInput(os.Stdin).
-		WithOutput(stderr).
-		Run()
+		RunAccessible(stderr, os.Stdin)
 }
 
 func defaultReportPath(format string) string {
