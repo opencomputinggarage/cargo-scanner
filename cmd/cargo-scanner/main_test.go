@@ -35,6 +35,43 @@ func TestRunVersion(t *testing.T) {
 	}
 }
 
+func TestRunVersionFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run(context.Background(), []string{"--version"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("code = %d, stderr = %s", code, stderr.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("cargo-scanner")) {
+		t.Fatalf("expected version output, got %s", stdout.String())
+	}
+}
+
+func TestShouldScanImplicitly(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "artifact.txt")
+	if err := os.WriteFile(target, []byte("hello"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if !shouldScanImplicitly(target) {
+		t.Fatal("expected existing file to scan implicitly")
+	}
+	if shouldScanImplicitly("scna") {
+		t.Fatal("expected unknown command typo not to scan implicitly")
+	}
+	if !shouldScanImplicitly("--json") {
+		t.Fatal("expected scan option to scan implicitly")
+	}
+}
+
+func TestSuggestCommand(t *testing.T) {
+	if got := suggestCommand("scna"); got != "scan" {
+		t.Fatalf("suggestCommand = %q, want scan", got)
+	}
+	if got := suggestCommand("totallyunknown"); got != "" {
+		t.Fatalf("suggestCommand = %q, want empty", got)
+	}
+}
+
 func TestRunInitWritesConfig(t *testing.T) {
 	tmp := t.TempDir()
 	configPath := filepath.Join(tmp, ".cargo-scanner.yaml")
@@ -68,6 +105,9 @@ func TestRunScanMissingTarget(t *testing.T) {
 	code := run(context.Background(), []string{"scan"}, &stdout, &stderr)
 	if code != 2 {
 		t.Fatalf("code = %d, want 2", code)
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("example:")) {
+		t.Fatalf("expected example hint, got %s", stderr.String())
 	}
 }
 

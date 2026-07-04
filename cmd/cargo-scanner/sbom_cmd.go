@@ -38,6 +38,7 @@ func runSBOM(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if fs.NArg() != 1 {
 		_, _ = fmt.Fprintln(stderr, "sbom requires exactly one target path")
+		_, _ = fmt.Fprintln(stderr, "example: cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json")
 		return 2
 	}
 	cfg, err := config.Load(*configPath)

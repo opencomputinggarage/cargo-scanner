@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"runtime/debug"
+	"strings"
 )
 
 var version = "dev"
@@ -39,14 +40,90 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "version":
 		_, _ = fmt.Fprintf(stdout, "cargo-scanner %s\n", displayVersion())
 		return 0
+	case "-v", "--version":
+		_, _ = fmt.Fprintf(stdout, "cargo-scanner %s\n", displayVersion())
+		return 0
 	case "-h", "--help", "help":
 		usage(stdout)
 		return 0
 	default:
+		if shouldScanImplicitly(args[0]) {
+			return runScan(ctx, args, stdout, stderr)
+		}
 		_, _ = fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
+		if suggestion := suggestCommand(args[0]); suggestion != "" {
+			_, _ = fmt.Fprintf(stderr, "Did you mean this?\n  cargo-scanner %s\n\n", suggestion)
+		}
 		usage(stderr)
 		return 2
 	}
+}
+
+var topLevelCommands = []string{
+	"init", "scan", "sbom", "doctor", "completion", "runtime", "tools", "cache", "version", "help",
+}
+
+func suggestCommand(input string) string {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" {
+		return ""
+	}
+	best := ""
+	bestDistance := 3
+	for _, command := range topLevelCommands {
+		distance := editDistance(input, command)
+		if distance < bestDistance {
+			bestDistance = distance
+			best = command
+		}
+	}
+	return best
+}
+
+func editDistance(a, b string) int {
+	if a == b {
+		return 0
+	}
+	prev := make([]int, len(b)+1)
+	for j := range prev {
+		prev[j] = j
+	}
+	for i := 1; i <= len(a); i++ {
+		cur := make([]int, len(b)+1)
+		cur[0] = i
+		for j := 1; j <= len(b); j++ {
+			cost := 0
+			if a[i-1] != b[j-1] {
+				cost = 1
+			}
+			cur[j] = minInt(cur[j-1]+1, prev[j]+1, prev[j-1]+cost)
+		}
+		prev = cur
+	}
+	return prev[len(b)]
+}
+
+func minInt(values ...int) int {
+	min := values[0]
+	for _, value := range values[1:] {
+		if value < min {
+			min = value
+		}
+	}
+	return min
+}
+
+func shouldScanImplicitly(arg string) bool {
+	if arg == "" {
+		return false
+	}
+	if strings.HasPrefix(arg, "-") {
+		return arg != "-h" && arg != "--help" && arg != "-v" && arg != "--version"
+	}
+	if _, err := os.Stat(arg); err == nil {
+		return true
+	}
+	return strings.HasPrefix(arg, ".") || strings.HasPrefix(arg, "/") || strings.HasPrefix(arg, "~")
 }
 
 func displayVersion() string {
@@ -69,6 +146,7 @@ func usage(w io.Writer) {
 Usage:
   cargo-scanner init
   cargo-scanner scan [options] <path>
+  cargo-scanner <path> [scan options]
   cargo-scanner sbom [options] <path>
   cargo-scanner doctor [--fix]
   cargo-scanner completion <bash|zsh|fish|powershell>

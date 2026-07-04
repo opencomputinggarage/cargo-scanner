@@ -38,6 +38,7 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if fs.NArg() != 1 {
 		_, _ = fmt.Fprintln(stderr, "scan requires exactly one target path")
+		_, _ = fmt.Fprintln(stderr, "example: cargo-scanner scan ~/Downloads --recursive")
 		return 2
 	}
 	cfg, err := config.Load(*configPath)

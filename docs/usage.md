@@ -6,6 +6,7 @@
 cargo-scanner init
 cargo-scanner doctor --fix
 cargo-scanner scan ./artifact.jar
+cargo-scanner ./artifact.jar
 ```
 
 `init` writes `.cargo-scanner.yaml`. `doctor --fix` installs missing managed

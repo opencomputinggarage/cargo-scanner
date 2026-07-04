@@ -23,6 +23,7 @@ Scan one file:
 
 ```sh
 cargo-scanner scan ./download.jar
+cargo-scanner ./download.jar
 ```
 
 Scan downloads recursively and fail on high severity:
@@ -80,6 +81,7 @@ brew install --HEAD ./Formula/cargo-scanner.rb
 ```sh
 cargo-scanner doctor
 cargo-scanner doctor --fix
+cargo-scanner ./artifact.jar --json
 cargo-scanner tools list
 cargo-scanner tools install all
 cargo-scanner tools update all

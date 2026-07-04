@@ -39,6 +39,8 @@ func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		native.New(),
 	}
 	_, _ = fmt.Fprintln(stdout, "Cargo Scanner doctor")
+	managedReady := false
+	dockerReady := false
 	for _, rt := range runtimes {
 		status := "ok"
 		if err := rt.Available(ctx); err != nil {
@@ -54,13 +56,17 @@ func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				_, _ = fmt.Fprintf(stdout, "- hint: cargo-scanner runtime pull --scanner grype\n")
 				continue
 			}
+			dockerReady = true
 			_, _ = fmt.Fprintf(stdout, "- image: ok (%s)\n", dockerRuntime.Image)
 		}
+		allDetected := true
 		for _, scanner := range scanners {
 			c := scanner.Detect(ctx, rt)
 			scannerStatus := "missing"
 			if c.Detected {
 				scannerStatus = "ok"
+			} else {
+				allDetected = false
 			}
 			if c.Version != "" {
 				_, _ = fmt.Fprintf(stdout, "- %s: %s (%s)\n", c.Name, scannerStatus, c.Version)
@@ -70,8 +76,24 @@ func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer) int
 				_, _ = fmt.Fprintf(stdout, "- %s: %s\n", c.Name, scannerStatus)
 			}
 		}
+		if rt.Name() == "managed" && allDetected {
+			managedReady = true
+		}
 	}
+	printDoctorNextStep(stdout, managedReady, dockerReady)
 	return 0
+}
+
+func printDoctorNextStep(stdout io.Writer, managedReady, dockerReady bool) {
+	_, _ = fmt.Fprintln(stdout)
+	switch {
+	case managedReady:
+		_, _ = fmt.Fprintln(stdout, "Next: cargo-scanner scan ~/Downloads --recursive")
+	case dockerReady:
+		_, _ = fmt.Fprintln(stdout, "Next: cargo-scanner scan ./artifact.jar --runtime docker")
+	default:
+		_, _ = fmt.Fprintln(stdout, "Next: cargo-scanner doctor --fix")
+	}
 }
 
 func runDoctorFix(ctx context.Context, stdout, stderr io.Writer, image string) int {
