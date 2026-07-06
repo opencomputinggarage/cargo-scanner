@@ -25,9 +25,16 @@ func runtimeByName(ctx context.Context, name string, dockerImage string, scanner
 	if image == "" {
 		image = docker.DefaultImage(scannerName)
 	}
+	// A user-supplied image is assumed to bundle every scanner (the
+	// cargo-scanner-runtime image), so select the requested scanner via
+	// --entrypoint. The per-scanner default images run their own entrypoint.
+	newDocker := docker.New
+	if dockerImage != "" {
+		newDocker = docker.NewMultiTool
+	}
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "", "auto":
-		dockerRuntime := docker.New(image)
+		dockerRuntime := newDocker(image)
 		if dockerImage != "" {
 			if err := dockerRuntime.Available(ctx); err == nil {
 				return dockerRuntime, nil
@@ -41,7 +48,7 @@ func runtimeByName(ctx context.Context, name string, dockerImage string, scanner
 		}
 		return native.New(), nil
 	case "docker":
-		rt := docker.New(image)
+		rt := newDocker(image)
 		if err := rt.Available(ctx); err != nil {
 			return nil, err
 		}
