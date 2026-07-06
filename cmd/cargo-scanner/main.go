@@ -44,6 +44,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return runTools(ctx, args[1:], stdout, stderr)
 	case "cache":
 		return runCache(ctx, args[1:], stdout, stderr)
+	case "config":
+		return runConfig(args[1:], stdout, stderr)
 	case "update":
 		return runUpdate(ctx, args[1:], stdout, stderr)
 	case "version":
@@ -69,7 +71,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 }
 
 var topLevelCommands = []string{
-	"init", "scan", "sbom", "doctor", "tui", "completion", "runtime", "tools", "cache", "update", "version", "help",
+	"init", "scan", "sbom", "doctor", "tui", "completion", "runtime", "tools", "cache", "config", "update", "version", "help",
 }
 
 func suggestCommand(input string) string {
@@ -178,6 +180,7 @@ Scan options:
 
 More:
   cargo-scanner help
+  cargo-scanner config              Edit default settings
   cargo-scanner completion <bash|zsh|fish|powershell>
   cargo-scanner runtime pull --scanner grype
   cargo-scanner tools install all

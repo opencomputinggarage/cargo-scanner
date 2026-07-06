@@ -6,7 +6,7 @@ import (
 )
 
 var completionCommands = []string{
-	"init", "scan", "sbom", "doctor", "tui", "runtime", "tools", "cache", "update", "completion", "version", "help",
+	"init", "scan", "sbom", "doctor", "tui", "runtime", "tools", "cache", "config", "update", "completion", "version", "help",
 }
 
 func runCompletion(args []string, stdout, stderr io.Writer) int {
@@ -33,15 +33,16 @@ func runCompletion(args []string, stdout, stderr io.Writer) int {
 func writeBashCompletion(w io.Writer) {
 	_, _ = fmt.Fprint(w, `_cargo_scanner_completions()
 {
-  local cur prev commands scan_opts tools_cmds runtime_cmds cache_cmds update_opts
+  local cur prev commands scan_opts tools_cmds runtime_cmds cache_cmds config_cmds update_opts
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  commands="init scan sbom doctor tui runtime tools cache update completion version help"
+  commands="init scan sbom doctor tui runtime tools cache config update completion version help"
   scan_opts="-s --scanner --config -u --runtime --docker-image -f --format -j --json -o --output --raw-output -b --sbom-output -R --recursive -i --include -x --exclude -F --fail-on -t --timeout"
   tools_cmds="path list doctor install update update-db uninstall"
   runtime_cmds="pull"
   cache_cmds="path clean"
+  config_cmds="show get set path edit"
   update_opts="--check --force --version --repo"
   if [[ ${COMP_CWORD} == 1 ]]; then
     COMPREPLY=( $(compgen -W "${commands}" -- "${cur}") )
@@ -52,6 +53,7 @@ func writeBashCompletion(w io.Writer) {
     tools) COMPREPLY=( $(compgen -W "${tools_cmds}" -- "${cur}") ) ;;
     runtime) COMPREPLY=( $(compgen -W "${runtime_cmds}" -- "${cur}") ) ;;
     cache) COMPREPLY=( $(compgen -W "${cache_cmds}" -- "${cur}") ) ;;
+    config) COMPREPLY=( $(compgen -W "${config_cmds}" -- "${cur}") ) ;;
     update) COMPREPLY=( $(compgen -W "${update_opts}" -- "${cur}") ) ;;
     completion) COMPREPLY=( $(compgen -W "bash zsh fish powershell" -- "${cur}") ) ;;
   esac
@@ -73,6 +75,7 @@ _cargo_scanner() {
     'runtime:manage Docker runtime images'
     'tools:manage scanner CLIs'
     'cache:manage cache'
+    'config:edit default settings'
     'update:update cargo-scanner'
     'completion:print shell completion'
     'version:print version'
@@ -108,7 +111,7 @@ complete -c cargo-scanner -n '__fish_seen_subcommand_from update' -l repo -x
 func writePowerShellCompletion(w io.Writer) {
 	_, _ = fmt.Fprint(w, `Register-ArgumentCompleter -Native -CommandName cargo-scanner -ScriptBlock {
   param($wordToComplete, $commandAst, $cursorPosition)
-  $commands = 'init','scan','sbom','doctor','tui','runtime','tools','cache','update','completion','version','help'
+  $commands = 'init','scan','sbom','doctor','tui','runtime','tools','cache','config','update','completion','version','help'
   $commands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
   }
