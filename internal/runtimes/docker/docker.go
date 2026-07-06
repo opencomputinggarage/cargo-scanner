@@ -112,7 +112,13 @@ func (r Runtime) Run(ctx context.Context, req core.RunRequest) (core.RunResult, 
 	if err := r.Available(ctx); err != nil {
 		return core.RunResult{}, err
 	}
-	args := []string{"run", "--rm", "--entrypoint", req.Binary}
+	// Each vendor scanner image already sets the scanner binary as its
+	// ENTRYPOINT (e.g. /grype, /syft, trivy), so we pass only the arguments
+	// and let the image's own entrypoint run. Overriding --entrypoint with a
+	// bare binary name breaks images whose binary is not on $PATH (grype and
+	// syft live at the image root), which Docker surfaces as a confusing
+	// "unable to upgrade to tcp, received 500".
+	args := []string{"run", "--rm"}
 	for _, env := range req.Env {
 		args = append(args, "-e", env)
 	}
