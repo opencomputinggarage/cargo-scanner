@@ -24,7 +24,7 @@ const commands = [
   },
   {
     label: "Direct scan",
-    value: "cargo-scanner ~/Downloads -R\ncargo-scanner ./artifact.jar -F high",
+    value: "cargo-scanner scan .\ncargo-scanner ./artifact.jar -F high",
   },
   {
     label: "Update",
@@ -48,7 +48,7 @@ const checks = [
   "Managed tools keep provenance manifests",
   "Self-update verifies release checksums",
   "JSON, SARIF, raw scanner output, and SBOM output",
-  "Summary-first result viewer with details on demand",
+  "Interactive result viewers with selectable details",
   "Plain output with NO_COLOR or CARGO_SCANNER_PLAIN",
 ];
 
@@ -131,20 +131,28 @@ function App() {
               <span></span>
             </div>
             <pre>{`$ cargo-scanner scan
-What should be scanned?
-Choose a common target or enter a path.
+Target
 > Current folder (.)
-  Enter another path
+  Choose file or folder
+
+Target path
+./artifact.jar
 
 Scan recursively?
-Recursive scan uses -R / --recursive.
-> Yes, scan files inside this folder
-  No, folder only
+  Yes
+> No
 
-What kind of result do you need?
-> Grype - vulnerabilities
-  Trivy - vulnerabilities
-  Syft - SBOM inventory
+Result
+> Vulnerabilities with Grype
+  Vulnerabilities with Trivy
+  SBOM with Syft
+
+Vulnerabilities  grype
+Summary
+Targets  Failed  Findings  Max  Status
+Severity  █████████████ clean
+Findings
+Severity  Vulnerability  Package  Fixed  Target
 
 $ cargo-scanner
 ╭────────────────────────────────────────╮
@@ -191,19 +199,19 @@ $ cargo-scanner
         <article>
           <ShieldCheck size={28} />
           <h3>Scan Local Artifacts</h3>
-          <p>Scan downloads, build outputs, archives, and extracted folders without switching tools.</p>
+          <p>Scan artifacts, build outputs, archives, and extracted folders without switching tools.</p>
           <code>cargo-scanner ./artifact.jar --fail-on high</code>
         </article>
         <article>
           <Boxes size={28} />
           <h3>Generate SBOMs</h3>
-          <p>Create CycloneDX SBOM output and normalized operation reports from the same CLI.</p>
-          <code>cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json</code>
+          <p>Inspect Syft component summaries in the terminal, or save raw CycloneDX output for automation.</p>
+          <code>cargo-scanner sbom ./artifact.jar</code>
         </article>
         <article>
           <Monitor size={28} />
           <h3>Use The TUI</h3>
-          <p>Start with a scanner-aware conversation, then use direct commands when ready.</p>
+          <p>Start with a short path-complete wizard, then inspect selectable finding details in the result viewer.</p>
           <code>cargo-scanner scan</code>
         </article>
       </section>
@@ -240,7 +248,7 @@ $ cargo-scanner
         <article>
           <FileJson size={24} />
           <h3>Automation Output</h3>
-          <p>Text opens a summary-first result viewer; JSON and SARIF stay automation-friendly.</p>
+          <p>Text opens an interactive result viewer; JSON and SARIF stay automation-friendly.</p>
         </article>
         <article>
           <RefreshCw size={24} />

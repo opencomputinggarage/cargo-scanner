@@ -13,10 +13,11 @@ cargo-scanner scan
 `doctor --fix` installs missing managed scanner tools and pulls the default
 Docker runtime image when Docker is available. `cargo-scanner scan` starts a
 short conversation and only asks questions needed for that scan: target,
-recursive mode for folders, result type, and output. The target question
-defaults to the current folder and only offers direct path entry for other
-locations. Grype and Trivy use vulnerability-focused follow-up questions. Syft
-uses SBOM-focused follow-up questions.
+optional recursive mode for folders, result type, and output. The target
+question defaults to the current folder. For a custom target, type one file or
+folder path directly and press `tab` to complete a suggestion. Grype and
+Trivy use vulnerability-focused follow-up questions. Syft uses SBOM-focused
+follow-up questions.
 
 ## Scanning
 
@@ -26,22 +27,23 @@ Conversational scan:
 cargo-scanner scan
 ```
 
-The wizard starts with `Current folder (.)` selected. Choose `Enter another
-path` to type a different file or folder path. Choosing Syft switches the
-remaining questions to SBOM output instead of vulnerability report output.
+The wizard starts with `Current folder (.)` selected. Choose `Choose file or
+folder` to enter a direct target path with `tab` completion. Choosing Syft
+switches the remaining questions to SBOM output instead of vulnerability report
+output.
 
 The short form scans directly:
 
 ```sh
 cargo-scanner ./artifact.jar
-cargo-scanner ~/Downloads --recursive
+cargo-scanner scan .
 ```
 
 The explicit form is equivalent:
 
 ```sh
 cargo-scanner scan ./artifact.jar
-cargo-scanner scan ~/Downloads --recursive
+cargo-scanner scan ./artifacts --recursive
 ```
 
 Common options:
@@ -49,7 +51,7 @@ Common options:
 ```sh
 cargo-scanner ./artifact.jar -s grype
 cargo-scanner ./artifact.jar -F high
-cargo-scanner ./downloads -R -i "*.jar,*.zip" -x "*.tmp"
+cargo-scanner ./artifacts -R -i "*.jar,*.zip" -x "*.tmp"
 ```
 
 Short scan options:
@@ -70,8 +72,8 @@ Short scan options:
 Live progress UI:
 
 ```sh
-cargo-scanner ~/Downloads --recursive
-cargo-scanner ~/Downloads --recursive --tui=false
+cargo-scanner ./artifacts --recursive
+cargo-scanner ./artifacts --recursive --tui=false
 ```
 
 The live scan UI is written to stderr only when stderr is a terminal, so JSON
@@ -102,10 +104,10 @@ cargo-scanner ./artifact.jar --format text
 ```
 
 Text reports use an interactive terminal UI when stdout is a terminal. The
-summary view opens first, `tab` switches to detailed findings, and `q`, `esc`,
-or `ctrl+c` closes the viewer. Findings with URLs are shown with clickable
-terminal links in terminals that support OSC 8 hyperlinks. JSON, SARIF, and
-file outputs remain non-interactive for automation.
+viewer opens with summary metrics and a selectable findings table. Use `up` and
+`down` to select a finding, `enter` to open finding details, `esc` to close
+details, and `o` to open the finding URL when one is available. JSON, SARIF,
+and file outputs remain non-interactive for automation.
 
 JSON report:
 
@@ -128,9 +130,14 @@ cargo-scanner ./artifact.jar --raw-output grype.raw.json
 ## SBOM
 
 ```sh
+cargo-scanner sbom ./artifact.jar
 cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json
 cargo-scanner sbom ./artifact.jar --json --output sbom-report.json
 ```
+
+With terminal text output, SBOM runs open a summary and selectable component
+table instead of printing raw CycloneDX JSON. Use `up` and `down` to select a
+component, `enter` to show component details, and `esc` to close details.
 
 ## Managed Tools
 
