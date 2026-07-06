@@ -97,7 +97,7 @@ func printDoctorNextStep(stdout io.Writer, managedReady, dockerReady bool) {
 	_, _ = fmt.Fprintln(stdout)
 	switch {
 	case managedReady:
-		_, _ = fmt.Fprintf(stdout, "%s: %s\n", ui.Section("Next"), ui.Code("cargo-scanner scan ~/Downloads --recursive"))
+		_, _ = fmt.Fprintf(stdout, "%s: %s\n", ui.Section("Next"), ui.Code("cargo-scanner scan ."))
 	case dockerReady:
 		_, _ = fmt.Fprintf(stdout, "%s: %s\n", ui.Section("Next"), ui.Code("cargo-scanner scan ./artifact.jar --runtime docker"))
 	default:

@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/opencomputinggarage/cargo-scanner/internal/ui"
 )
@@ -37,19 +40,18 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	}
 
 	_, _ = fmt.Fprintln(stderr, ui.Title("Cargo Scanner"))
-	_, _ = fmt.Fprintln(stderr, ui.Muted("I will ask only what is needed, then start the scan."))
+	_, _ = fmt.Fprintln(stderr, ui.Muted("Set target and output."))
 	_, _ = fmt.Fprintln(stderr)
 
 	targetOptions := []huh.Option[string]{
 		huh.NewOption("Current folder (.)", "current"),
-		huh.NewOption("Enter another path", "custom"),
+		huh.NewOption("Choose file or folder", "custom"),
 	}
 
 	var err error
 	if err := runScanWizardStep(
 		huh.NewSelect[string]().
-			Title("What should be scanned?").
-			Description("Choose a common target or enter a path.").
+			Title("Target").
 			Options(targetOptions...).
 			Value(&targetChoice),
 	); err != nil {
@@ -60,26 +62,12 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	case "current":
 		opts.Target = "."
 	case "custom":
-		opts.Target = "~/Downloads"
-		if err := runScanWizardStep(
-			huh.NewInput().
-				Title("Enter the file or folder path").
-				Description("Use an absolute path, relative path, or ~/Downloads.").
-				Value(&opts.Target).
-				Validate(func(value string) error {
-					value = strings.TrimSpace(value)
-					if value == "" {
-						return fmt.Errorf("target path is required")
-					}
-					if _, err := os.Stat(expandHome(value)); err != nil {
-						return err
-					}
-					return nil
-				}),
-		); err != nil {
+		opts.Target = "."
+		if err := runScanWizardPathStep(stderr, &opts.Target); err != nil {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
+		opts.Target = strings.TrimSpace(opts.Target)
 	}
 
 	targetInfo, err := os.Stat(expandHome(strings.TrimSpace(opts.Target)))
@@ -88,31 +76,25 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 		return 1
 	}
 	if targetInfo.IsDir() {
-		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("Folder detected"), ui.Muted("Recursive scan uses -R / --recursive."))
-		opts.Recursive = true
 		if err := runScanWizardStep(
 			huh.NewConfirm().
 				Title("Scan recursively?").
-				Description("Recursive scan uses -R / --recursive and scans files inside this folder.").
-				Affirmative("Yes, scan files inside this folder").
-				Negative("No, folder only").
+				Affirmative("Yes").
+				Negative("No").
 				Value(&opts.Recursive),
 		); err != nil {
 			_, _ = fmt.Fprintf(stderr, "%s %v\n", ui.Status("skipped"), err)
 			return 2
 		}
-	} else {
-		_, _ = fmt.Fprintf(stderr, "%s %s\n\n", ui.Section("File detected"), ui.Muted("Recursive scan is not needed."))
 	}
 
 	if err := runScanWizardStep(
 		huh.NewSelect[string]().
-			Title("What kind of result do you need?").
-			Description("Vulnerability scanners produce findings. Syft produces a CycloneDX SBOM.").
+			Title("Result").
 			Options(
-				huh.NewOption("Grype - vulnerabilities", "grype"),
-				huh.NewOption("Trivy - vulnerabilities", "trivy"),
-				huh.NewOption("Syft - SBOM inventory", "syft"),
+				huh.NewOption("Vulnerabilities with Grype", "grype"),
+				huh.NewOption("Vulnerabilities with Trivy", "trivy"),
+				huh.NewOption("SBOM with Syft", "syft"),
 			).
 			Value(&opts.Scanner),
 	); err != nil {
@@ -126,13 +108,158 @@ func runScanWizard(ctx context.Context, stdout, stderr io.Writer) int {
 	return runVulnerabilityWizard(ctx, opts, stdout, stderr)
 }
 
+type pathInputModel struct {
+	input     textinput.Model
+	err       error
+	cancelled bool
+	done      bool
+}
+
+func newPathInputModel(value string) pathInputModel {
+	input := textinput.New()
+	input.SetValue(value)
+	input.CursorEnd()
+	input.Focus()
+	input.ShowSuggestions = true
+	input.SetSuggestions(pathSuggestions(value))
+	return pathInputModel{input: input}
+}
+
+func (m pathInputModel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m pathInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "esc":
+			m.cancelled = true
+			return m, tea.Quit
+		case "enter":
+			value := strings.TrimSpace(m.input.Value())
+			if err := validateTargetPath(value); err != nil {
+				m.err = err
+				return m, nil
+			}
+			m.input.SetValue(value)
+			m.done = true
+			return m, tea.Quit
+		}
+	}
+
+	m.input.SetSuggestions(pathSuggestions(m.input.Value()))
+	m.input, cmd = m.input.Update(msg)
+	m.input.SetSuggestions(pathSuggestions(m.input.Value()))
+	m.err = nil
+	return m, cmd
+}
+
+func (m pathInputModel) View() string {
+	var b strings.Builder
+	b.WriteString("Target path\n")
+	b.WriteString("Type a file or folder path.\n\n")
+	b.WriteString(m.input.View())
+	b.WriteString("\n\n")
+	b.WriteString("tab complete | enter next | esc cancel")
+	if m.err != nil {
+		b.WriteString("\n")
+		b.WriteString(ui.Status("error"))
+		b.WriteString(" ")
+		b.WriteString(m.err.Error())
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+func runScanWizardPathStep(output io.Writer, target *string) error {
+	model := newPathInputModel(*target)
+	finalModel, err := tea.NewProgram(model, tea.WithInput(os.Stdin), tea.WithOutput(output)).Run()
+	if err != nil {
+		return err
+	}
+	model, ok := finalModel.(pathInputModel)
+	if !ok {
+		return fmt.Errorf("path input failed")
+	}
+	if model.cancelled {
+		return fmt.Errorf("cancelled")
+	}
+	if !model.done {
+		return fmt.Errorf("path input was not completed")
+	}
+	*target = strings.TrimSpace(model.input.Value())
+	return nil
+}
+
+func validateTargetPath(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fmt.Errorf("target path is required")
+	}
+	if _, err := os.Stat(expandHome(value)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func pathSuggestions(input string) []string {
+	input = strings.TrimSpace(input)
+	if input == "" {
+		input = "."
+	}
+
+	dirText, displayPrefix, match := splitPathInput(input)
+	entries, err := os.ReadDir(expandHome(dirText))
+	if err != nil {
+		return nil
+	}
+
+	match = strings.ToLower(match)
+	suggestions := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		name := entry.Name()
+		if match != "" && !strings.HasPrefix(strings.ToLower(name), match) {
+			continue
+		}
+		suggestion := displayPrefix + name
+		if entry.IsDir() {
+			suggestion += string(os.PathSeparator)
+		}
+		suggestions = append(suggestions, suggestion)
+	}
+	sort.Strings(suggestions)
+	if len(suggestions) > 20 {
+		return suggestions[:20]
+	}
+	return suggestions
+}
+
+func splitPathInput(input string) (dirText string, displayPrefix string, match string) {
+	if input == "." || input == ".." || input == "~" {
+		return input, input + string(os.PathSeparator), ""
+	}
+	if strings.HasSuffix(input, string(os.PathSeparator)) {
+		return strings.TrimSuffix(input, string(os.PathSeparator)), input, ""
+	}
+	separator := strings.LastIndex(input, string(os.PathSeparator))
+	if separator < 0 {
+		return ".", "", input
+	}
+	dirText = input[:separator]
+	if dirText == "" {
+		dirText = string(os.PathSeparator)
+	}
+	return dirText, input[:separator+1], input[separator+1:]
+}
+
 func runVulnerabilityWizard(ctx context.Context, opts scanWizardOptions, stdout, stderr io.Writer) int {
 	if err := runScanWizardStep(
 		huh.NewSelect[string]().
-			Title("Should the scan fail on severity?").
-			Description("Useful for CI or release checks. You can leave this disabled for local review.").
+			Title("Fail threshold").
 			Options(
-				huh.NewOption("Do not fail automatically", ""),
+				huh.NewOption("None", ""),
 				huh.NewOption("Fail on high or critical", "high"),
 				huh.NewOption("Fail on critical only", "critical"),
 				huh.NewOption("Fail on medium or higher", "medium"),
@@ -145,11 +272,11 @@ func runVulnerabilityWizard(ctx context.Context, opts scanWizardOptions, stdout,
 
 	if err := runScanWizardStep(
 		huh.NewSelect[string]().
-			Title("How should results be shown?").
+			Title("Output").
 			Options(
-				huh.NewOption("Show readable report here", "text"),
-				huh.NewOption("Save JSON report", "json"),
-				huh.NewOption("Save SARIF report", "sarif"),
+				huh.NewOption("Show in terminal", "text"),
+				huh.NewOption("Save JSON", "json"),
+				huh.NewOption("Save SARIF", "sarif"),
 			).
 			Value(&opts.Format),
 	); err != nil {
@@ -161,8 +288,7 @@ func runVulnerabilityWizard(ctx context.Context, opts scanWizardOptions, stdout,
 		opts.Output = defaultReportPath(opts.Format)
 		if err := runScanWizardStep(
 			huh.NewInput().
-				Title("Where should the report be saved?").
-				Description("Press Enter to use the suggested file name.").
+				Title("Report path").
 				Value(&opts.Output).
 				Validate(func(value string) error {
 					if strings.TrimSpace(value) == "" {
@@ -185,12 +311,11 @@ func runSBOMWizard(ctx context.Context, opts scanWizardOptions, stdout, stderr i
 	outputChoice := "print"
 	if err := runScanWizardStep(
 		huh.NewSelect[string]().
-			Title("How should the SBOM be produced?").
-			Description("Syft creates package inventory. Use JSON report only when automation needs Cargo Scanner metadata.").
+			Title("Output").
 			Options(
-				huh.NewOption("Print CycloneDX SBOM here", "print"),
-				huh.NewOption("Save CycloneDX SBOM file", "sbom"),
-				huh.NewOption("Save normalized JSON report", "json"),
+				huh.NewOption("Show in terminal", "print"),
+				huh.NewOption("Save SBOM", "sbom"),
+				huh.NewOption("Save JSON", "json"),
 			).
 			Value(&outputChoice),
 	); err != nil {
@@ -203,8 +328,7 @@ func runSBOMWizard(ctx context.Context, opts scanWizardOptions, stdout, stderr i
 		opts.SBOMOutput = "sbom.cdx.json"
 		if err := runScanWizardStep(
 			huh.NewInput().
-				Title("Where should the SBOM be saved?").
-				Description("This writes the raw CycloneDX JSON document.").
+				Title("SBOM path").
 				Value(&opts.SBOMOutput).
 				Validate(func(value string) error {
 					if strings.TrimSpace(value) == "" {
@@ -221,8 +345,7 @@ func runSBOMWizard(ctx context.Context, opts scanWizardOptions, stdout, stderr i
 		opts.Output = defaultReportPath("json")
 		if err := runScanWizardStep(
 			huh.NewInput().
-				Title("Where should the normalized report be saved?").
-				Description("This writes Cargo Scanner metadata around the SBOM operation.").
+				Title("Report path").
 				Value(&opts.Output).
 				Validate(func(value string) error {
 					if strings.TrimSpace(value) == "" {

@@ -24,17 +24,18 @@ cargo-scanner scan
 Prefer direct commands:
 
 ```sh
-cargo-scanner ~/Downloads -R
+cargo-scanner scan .
 cargo-scanner ./artifact.jar -F high
 ```
 
 Running `cargo-scanner` opens a small dashboard. Running `cargo-scanner scan`
 without a target starts a short conversation that asks only the questions
-needed for that scan: target, recursive mode for folders, result type, and
-output. Grype and Trivy ask vulnerability-focused questions such as fail
-threshold and report format. Syft switches to SBOM-focused questions.
-The target step defaults to the current folder and only offers direct path
-entry when you want to scan somewhere else.
+needed for that scan: target, optional recursive mode for folders, result type,
+and output. Choosing a custom target asks for one direct path input with
+`tab` path completion. Grype and Trivy ask vulnerability-focused questions
+such as fail threshold and report format. Syft switches to SBOM-focused
+questions. The target step defaults to the current folder and only asks for a
+path when you want to scan somewhere else.
 
 ## Install
 
@@ -98,22 +99,22 @@ Start with the conversational scan:
 cargo-scanner scan
 ```
 
-The first wizard step scans the current folder by default. Choose `Enter
-another path` only when you want to type a file or folder path. After choosing
-the result type, the wizard asks different follow-up questions for
-vulnerability scans and SBOM generation.
+The first wizard step scans the current folder by default. Choose `Choose file
+or folder` when you want to type a different path; press `tab` to complete a
+suggested file or folder. After choosing the result type, the wizard asks
+different follow-up questions for vulnerability scans and SBOM generation.
 
 Scan one artifact:
 
 ```sh
-cargo-scanner ./download.jar
-cargo-scanner scan ./download.jar
+cargo-scanner ./artifact.jar
+cargo-scanner scan ./artifact.jar
 ```
 
 Scan a directory recursively:
 
 ```sh
-cargo-scanner ~/Downloads -R
+cargo-scanner ./artifacts -R
 ```
 
 Fail when high or critical findings exist:
@@ -144,19 +145,23 @@ cargo-scanner ./artifact.jar --format sarif --output results.sarif
 In a terminal, scans show the current file and progress. Use `--tui=false` to
 disable the live progress UI.
 
-Text results render as a terminal report panel with severity cards, a
-distribution bar, and a target summary. The results stay open until you press
-`q`, `esc`, or `ctrl+c`. Press `tab` to switch from the default summary to the
-detailed findings table. When scanner output includes a vulnerability URL,
-supported terminals show a clickable detail link.
+Text results render as an interactive terminal viewer with summary metrics and
+a selectable findings table. Use `up` and `down` to select a finding, `enter`
+to show finding details, `esc` to close details, and `o` to open the finding URL
+when one is available.
 
 ## SBOM
 
 Generate a CycloneDX SBOM with Syft:
 
 ```sh
+cargo-scanner sbom ./artifact.jar
 cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json
 ```
+
+Terminal output opens an SBOM viewer with a summary and selectable component
+table. Use `up` and `down` to select a component, `enter` to show component
+details, and `esc` to close details.
 
 Write a normalized JSON report around the SBOM operation:
 

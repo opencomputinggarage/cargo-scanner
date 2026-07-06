@@ -163,7 +163,7 @@ Usage:
   cargo-scanner sbom <path>        Generate an SBOM
 
 Common examples:
-  cargo-scanner ~/Downloads -R
+  cargo-scanner scan .
   cargo-scanner ./artifact.jar -F high
   cargo-scanner ./artifact.jar -j -o report.json
   cargo-scanner tools list

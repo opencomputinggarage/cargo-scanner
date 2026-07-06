@@ -44,6 +44,6 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 	_, _ = fmt.Fprintf(stdout, "Wrote %s\n", *configPath)
 	_, _ = fmt.Fprintln(stdout, "Next:")
 	_, _ = fmt.Fprintln(stdout, "  cargo-scanner doctor --fix")
-	_, _ = fmt.Fprintln(stdout, "  cargo-scanner scan ./Downloads --recursive")
+	_, _ = fmt.Fprintln(stdout, "  cargo-scanner scan .")
 	return 0
 }

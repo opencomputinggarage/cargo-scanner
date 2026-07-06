@@ -52,7 +52,7 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return runScanWizard(ctx, stdout, stderr)
 		}
 		_, _ = fmt.Fprintln(stderr, "scan requires exactly one target path")
-		_, _ = fmt.Fprintln(stderr, "example: cargo-scanner scan ~/Downloads --recursive")
+		_, _ = fmt.Fprintln(stderr, "example: cargo-scanner scan ./artifact.jar")
 		return 2
 	}
 	cfg, err := config.LoadLayered(*configPath)
@@ -87,12 +87,22 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	var progress *scanProgress
+	progressStopped := false
+	stopProgress := func() bool {
+		if progress == nil || progressStopped {
+			return true
+		}
+		progressStopped = true
+		if err := progress.Stop(); err != nil {
+			_, _ = fmt.Fprintf(stderr, "close scan tui: %v\n", err)
+			return false
+		}
+		return true
+	}
 	if shouldStartScanProgress(stderr, *scanTUI) {
 		progress = startScanProgress(stderr, fs.Arg(0), scanner.Name(), rt.Name(), len(targets))
 		defer func() {
-			if err := progress.Stop(); err != nil {
-				_, _ = fmt.Fprintf(stderr, "close scan tui: %v\n", err)
-			}
+			stopProgress()
 		}()
 		progress.Stage("Scanner and runtime ready")
 	}
@@ -123,6 +133,9 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			_, _ = fmt.Fprintf(stderr, "max severity %s meets fail threshold %s\n", result.Summary.MaxSeverity(), failOn)
 			exitCode = 1
 		}
+	}
+	if !stopProgress() {
+		return 1
 	}
 	if *rawOutputPath != "" && len(reports) == 1 && len(reports[0].Raw) > 0 {
 		if err := os.WriteFile(*rawOutputPath, []byte(reports[0].Raw[0].Content), 0o600); err != nil {

@@ -79,7 +79,7 @@ var (
 
 func startScanProgress(w io.Writer, root, scannerName, runtimeName string, total int) *scanProgress {
 	model := newScanProgressModel(root, scannerName, runtimeName, total)
-	program := tea.NewProgram(model, tea.WithOutput(w), tea.WithInput(nil))
+	program := tea.NewProgram(model, tea.WithOutput(w), tea.WithInput(nil), tea.WithAltScreen())
 	sp := &scanProgress{program: program, done: make(chan struct{})}
 	go func() {
 		_, err := program.Run()

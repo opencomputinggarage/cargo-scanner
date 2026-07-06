@@ -85,7 +85,7 @@ func runTUI(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 func newTUIModel(ctx context.Context) tuiModel {
 	actions := []list.Item{
 		tuiAction{Name: "Scan Something", Detail: "Choose a file or folder and start with safe defaults", Command: "cargo-scanner scan", Args: []string{"scan"}},
-		tuiAction{Name: "Scan Downloads", Detail: "Check common inbound files recursively", Command: "cargo-scanner scan ~/Downloads --recursive", Args: []string{"scan", "~/Downloads", "--recursive"}},
+		tuiAction{Name: "Scan Current Folder", Detail: "Check this workspace recursively", Command: "cargo-scanner scan . --recursive", Args: []string{"scan", ".", "--recursive"}},
 		tuiAction{Name: "Fix Setup", Detail: "Install missing tools and prepare Docker", Command: "cargo-scanner doctor --fix", Args: []string{"doctor", "--fix"}},
 		tuiAction{Name: "Settings", Detail: "Set default runtime, scanner, format, and fail threshold", Command: "cargo-scanner config", Args: []string{"config"}},
 		tuiAction{Name: "Check For Updates", Detail: "Look for a newer cargo-scanner release", Command: "cargo-scanner update --check", Args: []string{"update", "--check"}},
