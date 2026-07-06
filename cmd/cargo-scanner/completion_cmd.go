@@ -33,7 +33,7 @@ func runCompletion(args []string, stdout, stderr io.Writer) int {
 func writeBashCompletion(w io.Writer) {
 	_, _ = fmt.Fprint(w, `_cargo_scanner_completions()
 {
-  local cur prev commands scan_opts tools_cmds runtime_cmds cache_cmds config_cmds update_opts
+  local cur prev commands scan_opts tools_cmds runtime_cmds cache_cmds config_cmds doctor_opts update_opts
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -43,6 +43,7 @@ func writeBashCompletion(w io.Writer) {
   runtime_cmds="pull"
   cache_cmds="path clean"
   config_cmds="show get set path edit"
+  doctor_opts="--fix --runtime --docker-image"
   update_opts="--check --force --version --repo"
   if [[ ${COMP_CWORD} == 1 ]]; then
     COMPREPLY=( $(compgen -W "${commands}" -- "${cur}") )
@@ -50,6 +51,7 @@ func writeBashCompletion(w io.Writer) {
   fi
   case "${COMP_WORDS[1]}" in
     scan|sbom) COMPREPLY=( $(compgen -W "${scan_opts}" -- "${cur}") ) ;;
+    doctor) COMPREPLY=( $(compgen -W "${doctor_opts}" -- "${cur}") ) ;;
     tools) COMPREPLY=( $(compgen -W "${tools_cmds}" -- "${cur}") ) ;;
     runtime) COMPREPLY=( $(compgen -W "${runtime_cmds}" -- "${cur}") ) ;;
     cache) COMPREPLY=( $(compgen -W "${cache_cmds}" -- "${cur}") ) ;;
@@ -101,6 +103,7 @@ complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s j
 complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s o -x
 complete -c cargo-scanner -n '__fish_seen_subcommand_from scan sbom' -s F -x -a 'critical high medium low'
 complete -c cargo-scanner -n '__fish_seen_subcommand_from doctor' -l fix
+complete -c cargo-scanner -n '__fish_seen_subcommand_from doctor' -l runtime -x -a 'native managed docker'
 complete -c cargo-scanner -n '__fish_seen_subcommand_from update' -l check
 complete -c cargo-scanner -n '__fish_seen_subcommand_from update' -l force
 complete -c cargo-scanner -n '__fish_seen_subcommand_from update' -l version -x

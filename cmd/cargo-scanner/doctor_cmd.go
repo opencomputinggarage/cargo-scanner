@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/huh"
+	"github.com/opencomputinggarage/cargo-scanner/internal/config"
 	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/docker"
 	"github.com/opencomputinggarage/cargo-scanner/internal/runtimes/managed"
@@ -21,7 +23,8 @@ import (
 func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	fix := fs.Bool("fix", false, "install managed tools and pull the default Docker image")
+	fix := fs.Bool("fix", false, "set up scanners for the chosen install method")
+	runtimeFlag := fs.String("runtime", "", "install method to set up: native, managed, docker")
 	dockerImage := fs.String("docker-image", docker.DefaultImage("grype"), "Docker runtime image to check or pull")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -31,7 +34,12 @@ func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		return 2
 	}
 	if *fix {
-		return runDoctorFix(ctx, stdout, stderr, *dockerImage)
+		method, err := resolveInstallMethod(stdout, stderr, *runtimeFlag)
+		if err != nil {
+			_, _ = fmt.Fprintln(stderr, err)
+			return 2
+		}
+		return runDoctorFix(ctx, stdout, stderr, *dockerImage, method)
 	}
 	scanners := []core.Scanner{grype.New(), trivy.New(), syft.New()}
 	runtimes := []core.Runtime{
@@ -97,7 +105,224 @@ func printDoctorNextStep(stdout io.Writer, managedReady, dockerReady bool) {
 	}
 }
 
-func runDoctorFix(ctx context.Context, stdout, stderr io.Writer, image string) int {
+// resolveInstallMethod decides which install method doctor --fix should set up.
+// A valid --runtime flag wins; otherwise an interactive terminal is prompted;
+// otherwise it returns "" so the legacy managed+docker behavior runs.
+func resolveInstallMethod(stdout, stderr io.Writer, flagVal string) (string, error) {
+	flagVal = strings.ToLower(strings.TrimSpace(flagVal))
+	if flagVal != "" {
+		switch flagVal {
+		case "native", "managed", "docker":
+			return flagVal, nil
+		default:
+			return "", fmt.Errorf("runtime must be one of: native, managed, docker")
+		}
+	}
+	if !shouldRunScanWizard(stdout, stderr) {
+		return "", nil
+	}
+	method := "managed"
+	_, _ = fmt.Fprintln(stderr, ui.Title("Cargo Scanner setup"))
+	_, _ = fmt.Fprintln(stderr, ui.Muted("Pick how scanners run. This becomes your default runtime."))
+	_, _ = fmt.Fprintln(stderr)
+	if err := runScanWizardStep(
+		huh.NewSelect[string]().
+			Title("How do you want to run scanners?").
+			Description("You can change this later with cargo-scanner config.").
+			Options(
+				huh.NewOption("managed - Cargo Scanner installs and manages the tools", "managed"),
+				huh.NewOption("native - use grype/trivy/syft already on your PATH", "native"),
+				huh.NewOption("docker - run scanners in containers", "docker"),
+			).
+			Value(&method),
+	); err != nil {
+		return "", err
+	}
+	return method, nil
+}
+
+func runDoctorFix(ctx context.Context, stdout, stderr io.Writer, image, method string) int {
+	switch method {
+	case "native":
+		code := doctorSetupNative(ctx, stdout, stderr)
+		saveDefaultRuntime(stdout, stderr, "native")
+		return code
+	case "managed":
+		code := doctorSetupManaged(ctx, stdout, stderr)
+		if code == 0 {
+			saveDefaultRuntime(stdout, stderr, "managed")
+		}
+		return code
+	case "docker":
+		code := doctorSetupDocker(ctx, stdout, stderr)
+		if code == 0 {
+			saveDefaultRuntime(stdout, stderr, "docker")
+		}
+		return code
+	default:
+		return doctorSetupLegacy(ctx, stdout, stderr, image)
+	}
+}
+
+func saveDefaultRuntime(stdout, stderr io.Writer, runtime string) {
+	path := config.GlobalPath()
+	cfg, err := config.Load(path)
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "save default runtime: %v\n", err)
+		return
+	}
+	cfg.Runtime = runtime
+	if err := config.Save(path, cfg); err != nil {
+		_, _ = fmt.Fprintf(stderr, "save default runtime: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintf(stdout, "\n%s default runtime set to %s\n", ui.Status("ok"), runtime)
+	_, _ = fmt.Fprintln(stdout, ui.Muted(path))
+}
+
+func doctorSetupNative(ctx context.Context, stdout, stderr io.Writer) int {
+	rt := native.New()
+	_, _ = fmt.Fprintln(stdout, ui.Title("Cargo Scanner doctor (native)"))
+	allOK := true
+	for _, name := range tools.SupportedNames() {
+		scanner, _ := scannerByName(name)
+		c := scanner.Detect(ctx, rt)
+		if c.Detected {
+			_, _ = fmt.Fprintf(stdout, "- %s: %s (%s)\n", name, ui.Status("ok"), c.Version)
+			continue
+		}
+		allOK = false
+		_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Status("missing"))
+	}
+	if !allOK {
+		_, _ = fmt.Fprintln(stdout)
+		_, _ = fmt.Fprintln(stdout, ui.Muted("Native mode uses tools already on your PATH; Cargo Scanner does not install them."))
+		_, _ = fmt.Fprintf(stdout, "Install the missing tools, or switch to managed with %s\n", ui.Code("cargo-scanner doctor --fix --runtime managed"))
+	}
+	return 0
+}
+
+func doctorSetupDocker(ctx context.Context, stdout, stderr io.Writer) int {
+	if err := docker.New("").Available(ctx); err != nil {
+		_, _ = fmt.Fprintf(stderr, "docker unavailable: %s\n", compactError(err))
+		_, _ = fmt.Fprintln(stdout, ui.Muted("Install and start Docker, then rerun this setup."))
+		return 1
+	}
+	images := []string{
+		docker.DefaultImage("grype"),
+		docker.DefaultImage("trivy"),
+		docker.DefaultImage("syft"),
+	}
+	total := len(images)
+	var progress *operationProgress
+	if shouldStartOperationProgress(stderr) {
+		progress = startOperationProgress(stderr, "Pull scanner images", total)
+		defer func() {
+			if err := progress.Stop(); err != nil {
+				_, _ = fmt.Fprintf(stderr, "close progress ui: %v\n", err)
+			}
+		}()
+	} else {
+		_, _ = fmt.Fprintln(stdout, ui.Title("Cargo Scanner doctor --fix (docker)"))
+	}
+	for i, img := range images {
+		rt := docker.New(img)
+		if progress != nil {
+			progress.Step(i+1, total, "Checking image", img)
+		}
+		if err := rt.ImageAvailable(ctx); err == nil {
+			if progress != nil {
+				progress.Complete(true, img+" already available")
+			} else {
+				_, _ = fmt.Fprintf(stdout, "- %s: %s\n", img, ui.Status("available"))
+			}
+			continue
+		}
+		if progress != nil {
+			progress.Stage("Pulling image", img)
+		} else {
+			_, _ = fmt.Fprintf(stdout, "- %s: pulling...\n", ui.Code(img))
+		}
+		pullOutput := stdout
+		if progress != nil {
+			pullOutput = progress.Writer()
+		}
+		if err := rt.Pull(ctx, pullOutput); err != nil {
+			if progress != nil {
+				progress.Complete(false, "pull failed: "+err.Error())
+			}
+			_, _ = fmt.Fprintf(stderr, "pull docker image %s: %v\n", img, err)
+			return 1
+		}
+		if progress != nil {
+			progress.Complete(true, img+" pulled")
+		}
+	}
+	return 0
+}
+
+func doctorSetupManaged(ctx context.Context, stdout, stderr io.Writer) int {
+	rt := managed.New("")
+	if err := rt.Available(ctx); err != nil {
+		_, _ = fmt.Fprintf(stderr, "managed runtime unavailable: %v\n", err)
+		return 1
+	}
+	names := tools.SupportedNames()
+	total := len(names)
+	var progress *operationProgress
+	if shouldStartOperationProgress(stderr) {
+		progress = startOperationProgress(stderr, "Install managed scanners", total)
+		defer func() {
+			if err := progress.Stop(); err != nil {
+				_, _ = fmt.Fprintf(stderr, "close progress ui: %v\n", err)
+			}
+		}()
+	} else {
+		_, _ = fmt.Fprintln(stdout, ui.Title("Cargo Scanner doctor --fix (managed)"))
+	}
+	installer := tools.Installer{BinDir: rt.BinDir()}
+	if progress != nil {
+		installer.Progress = func(event tools.InstallProgress) {
+			progress.Stage(event.Stage, event.Tool+" "+event.Detail)
+		}
+	}
+	for i, name := range names {
+		if progress != nil {
+			progress.Step(i+1, total, "Checking tool", name)
+		}
+		scanner, _ := scannerByName(name)
+		if scanner.Detect(ctx, rt).Detected {
+			if progress != nil {
+				progress.Complete(true, fmt.Sprintf("%s already installed", name))
+			} else {
+				_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Status("installed"))
+			}
+			continue
+		}
+		if progress != nil {
+			progress.Stage("Installing tool", name)
+		} else {
+			_, _ = fmt.Fprintf(stdout, "- %s: %s\n", name, ui.Muted("installing..."))
+		}
+		result, err := installer.Install(ctx, name)
+		if err != nil {
+			if progress != nil {
+				progress.Complete(false, fmt.Sprintf("%s failed: %v", name, err))
+			}
+			_, _ = fmt.Fprintf(stderr, "install %s: %v\n", name, err)
+			_, _ = fmt.Fprintf(stderr, "hint: retry with cargo-scanner tools install %s\n", name)
+			return 1
+		}
+		if progress != nil {
+			progress.Complete(true, fmt.Sprintf("%s %s installed", result.Name, result.Version))
+		} else {
+			_, _ = fmt.Fprintf(stdout, "  %s %s %s at %s\n", ui.Status("installed"), result.Name, result.Version, ui.Code(result.Path))
+		}
+	}
+	return 0
+}
+
+func doctorSetupLegacy(ctx context.Context, stdout, stderr io.Writer, image string) int {
 	if !shouldStartOperationProgress(stderr) {
 		_, _ = fmt.Fprintln(stdout, ui.Title("Cargo Scanner doctor --fix"))
 	}

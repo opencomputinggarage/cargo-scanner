@@ -158,7 +158,7 @@ Usage:
   cargo-scanner                    Open the dashboard
   cargo-scanner scan               Start a guided scan
   cargo-scanner scan <path>        Scan a file or directory
-  cargo-scanner doctor --fix       Prepare scanner tools
+  cargo-scanner doctor --fix       Set up scanners (asks native/managed/docker)
   cargo-scanner update             Update cargo-scanner
   cargo-scanner sbom <path>        Generate an SBOM
 
