@@ -51,7 +51,7 @@ func runSBOM(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintln(stderr, "example: cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json")
 		return 2
 	}
-	cfg, err := config.Load(*configPath)
+	cfg, err := config.LoadLayered(*configPath)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "load config: %v\n", err)
 		return 1

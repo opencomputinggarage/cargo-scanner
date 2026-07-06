@@ -87,6 +87,7 @@ func newTUIModel(ctx context.Context) tuiModel {
 		tuiAction{Name: "Scan Something", Detail: "Choose a file or folder and start with safe defaults", Command: "cargo-scanner scan", Args: []string{"scan"}},
 		tuiAction{Name: "Scan Downloads", Detail: "Check common inbound files recursively", Command: "cargo-scanner scan ~/Downloads --recursive", Args: []string{"scan", "~/Downloads", "--recursive"}},
 		tuiAction{Name: "Fix Setup", Detail: "Install missing tools and prepare Docker", Command: "cargo-scanner doctor --fix", Args: []string{"doctor", "--fix"}},
+		tuiAction{Name: "Settings", Detail: "Set default runtime, scanner, format, and fail threshold", Command: "cargo-scanner config", Args: []string{"config"}},
 		tuiAction{Name: "Check For Updates", Detail: "Look for a newer cargo-scanner release", Command: "cargo-scanner update --check", Args: []string{"update", "--check"}},
 		tuiAction{Name: "Create SBOM", Detail: "Generate an SBOM for one artifact", Command: "cargo-scanner sbom ./artifact.jar --sbom-output sbom.cdx.json", Args: []string{"sbom", "./artifact.jar", "--sbom-output", "sbom.cdx.json"}},
 	}
