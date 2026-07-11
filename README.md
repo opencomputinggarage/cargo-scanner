@@ -45,10 +45,22 @@ Install the latest release with checksum verification:
 curl -fsSL https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.sh | sh
 ```
 
+Windows PowerShell:
+
+```powershell
+iwr https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.ps1 -UseBasicParsing | iex
+```
+
 Install a specific release:
 
 ```sh
 CARGO_SCANNER_VERSION=vX.Y.Z sh -c "$(curl -fsSL https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.sh)"
+```
+
+Windows PowerShell:
+
+```powershell
+$env:CARGO_SCANNER_VERSION = "vX.Y.Z"; iwr https://raw.githubusercontent.com/opencomputinggarage/cargo-scanner/main/scripts/install.ps1 -UseBasicParsing | iex
 ```
 
 Install with Go:

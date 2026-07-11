@@ -2,6 +2,7 @@ package tools
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -120,7 +121,7 @@ func (i Installer) Install(ctx context.Context, name string) (InstallResult, err
 	if err != nil {
 		return InstallResult{}, err
 	}
-	dst := filepath.Join(i.BinDir, tool.Name)
+	dst := filepath.Join(i.BinDir, binaryName(tool.Name, runtime.GOOS))
 	tmp := dst + ".tmp"
 	i.progress(tool.Name, "Installing binary", dst)
 	if err := os.WriteFile(tmp, binary, 0o700); err != nil {
@@ -257,22 +258,50 @@ func (i Installer) http() *http.Client {
 }
 
 func archiveName(tool, version, goos, goarch string) (string, error) {
+	archiveArch, err := packageArch(tool, goos, goarch)
+	if err != nil {
+		return "", err
+	}
 	switch tool {
 	case "grype", "syft":
-		return fmt.Sprintf("%s_%s_%s_%s.tar.gz", tool, version, goos, goarch), nil
+		if goos == "windows" {
+			return fmt.Sprintf("%s_%s_%s_%s.zip", tool, version, goos, archiveArch), nil
+		}
+		return fmt.Sprintf("%s_%s_%s_%s.tar.gz", tool, version, goos, archiveArch), nil
 	case "trivy":
 		osPart, err := trivyOS(goos)
 		if err != nil {
 			return "", err
 		}
-		archPart, err := trivyArch(goarch)
+		archPart, err := trivyArch(archiveArch)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("trivy_%s_%s-%s.tar.gz", version, osPart, archPart), nil
+		ext := "tar.gz"
+		if goos == "windows" {
+			ext = "zip"
+		}
+		return fmt.Sprintf("trivy_%s_%s-%s.%s", version, osPart, archPart, ext), nil
 	default:
 		return "", fmt.Errorf("unsupported tool %q", tool)
 	}
+}
+
+func packageArch(tool, goos, goarch string) (string, error) {
+	switch goarch {
+	case "amd64", "arm64", "arm", "386":
+	default:
+		return "", fmt.Errorf("unsupported arch %q", goarch)
+	}
+	if goos == "windows" && goarch == "arm64" {
+		switch tool {
+		case "grype", "trivy":
+			// Upstream does not publish Windows ARM64 archives for these tools.
+			// Windows ARM64 systems can run the x64 binaries via emulation.
+			return "amd64", nil
+		}
+	}
+	return goarch, nil
 }
 
 func trivyOS(goos string) (string, error) {
@@ -281,6 +310,8 @@ func trivyOS(goos string) (string, error) {
 		return "macOS", nil
 	case "linux":
 		return "Linux", nil
+	case "windows":
+		return "windows", nil
 	case "freebsd":
 		return "FreeBSD", nil
 	default:
@@ -316,7 +347,24 @@ func checksumFor(text, filename string) (string, error) {
 	return "", fmt.Errorf("checksum for %s not found", filename)
 }
 
+func binaryName(name, goos string) string {
+	if goos == "windows" {
+		return name + ".exe"
+	}
+	return name
+}
+
 func extractBinary(archive []byte, name string) ([]byte, error) {
+	if strings.HasSuffix(name, ".zip") {
+		return nil, errors.New("tool name must not be an archive name")
+	}
+	if isZip(archive) {
+		return extractBinaryZip(archive, binaryName(name, "windows"))
+	}
+	return extractBinaryTarGZ(archive, binaryName(name, runtime.GOOS))
+}
+
+func extractBinaryTarGZ(archive []byte, name string) ([]byte, error) {
 	gz, err := gzip.NewReader(bytes.NewReader(archive))
 	if err != nil {
 		return nil, err
@@ -340,6 +388,29 @@ func extractBinary(archive []byte, name string) ([]byte, error) {
 		return io.ReadAll(tr)
 	}
 	return nil, fmt.Errorf("binary %q not found in archive", name)
+}
+
+func extractBinaryZip(archive []byte, name string) ([]byte, error) {
+	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range zr.File {
+		if filepath.Base(file.Name) != name {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer rc.Close()
+		return io.ReadAll(rc)
+	}
+	return nil, fmt.Errorf("binary %q not found in archive", name)
+}
+
+func isZip(data []byte) bool {
+	return len(data) >= 4 && bytes.Equal(data[:4], []byte{'P', 'K', 0x03, 0x04})
 }
 
 func sha256Hex(b []byte) string {

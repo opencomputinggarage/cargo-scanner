@@ -55,9 +55,9 @@ func runToolsUninstall(args []string, stdout, stderr io.Writer, rt managed.Runti
 		names = tools.SupportedNames()
 	}
 	for _, name := range names {
-		path := rt.BinDir() + "/" + name
+		path := rt.ToolPath(name)
 		_ = os.Remove(path)
-		_ = os.Remove(path + ".json")
+		_ = os.Remove(rt.ManifestPath(name))
 		_, _ = fmt.Fprintf(stdout, "- %s removed\n", name)
 	}
 	return 0
@@ -108,7 +108,7 @@ func runToolsList(ctx context.Context, stdout, stderr io.Writer, rt managed.Runt
 		c := scanner.Detect(ctx, rt)
 		if c.Detected {
 			digest := ""
-			if manifest, err := tools.ReadManifest(rt.BinDir() + "/" + name + ".json"); err == nil && manifest.SHA256 != "" {
+			if manifest, err := tools.ReadManifest(rt.ManifestPath(name)); err == nil && manifest.SHA256 != "" {
 				digest = manifest.SHA256[:12]
 			}
 			if c.Version != "" {
