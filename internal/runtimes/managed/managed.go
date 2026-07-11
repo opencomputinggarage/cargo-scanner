@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/opencomputinggarage/cargo-scanner/internal/core"
 )
@@ -35,6 +36,14 @@ func (r Runtime) CacheDir() string {
 	return filepath.Join(r.Root, "cache")
 }
 
+func (r Runtime) ToolPath(binary string) string {
+	return filepath.Join(r.BinDir(), executableName(binary))
+}
+
+func (r Runtime) ManifestPath(binary string) string {
+	return r.ToolPath(binary) + ".json"
+}
+
 func (r Runtime) Available(context.Context) error {
 	if err := os.MkdirAll(r.BinDir(), 0o700); err != nil {
 		return err
@@ -46,7 +55,7 @@ func (r Runtime) LookPath(ctx context.Context, binary string) (string, error) {
 	if err := r.Available(ctx); err != nil {
 		return "", err
 	}
-	path := filepath.Join(r.BinDir(), binary)
+	path := r.ToolPath(binary)
 	info, err := os.Stat(path)
 	if err != nil {
 		return "", fmt.Errorf("%s not installed in managed tools (%s)", binary, r.BinDir())
@@ -94,6 +103,13 @@ func (r Runtime) Run(ctx context.Context, req core.RunRequest) (core.RunResult, 
 		return result, err
 	}
 	return result, nil
+}
+
+func executableName(binary string) string {
+	if runtime.GOOS == "windows" && filepath.Ext(binary) == "" {
+		return binary + ".exe"
+	}
+	return binary
 }
 
 func defaultRoot() string {
